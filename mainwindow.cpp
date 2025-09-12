@@ -21,7 +21,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
 MainWindow::~MainWindow()
 {
-    // Автоматическое удаление через родительскую систему Qt
 }
 
 void MainWindow::setupPages()
