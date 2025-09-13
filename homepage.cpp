@@ -4,37 +4,113 @@
 #include <QGridLayout>
 #include <QLabel>
 
-HomeWidget::HomeWidget(QWidget *parent) : QWidget(parent)
-{
-
-}
-
-
-
-HomePage::HomePage(QWidget *parent) : QWidget(parent)
+HomePage::HomePage(QWidget *parent) : QWidget(parent),
+    serverConnected(false),
+    clientConnected(false)
 {
     setupUI();
 }
 
 void HomePage::setupUI()
 {
-    QVBoxLayout *mainLayot = new QVBoxLayout(this);
-    mainLayot->setSpacing(20);
-    mainLayot->setContentsMargins(30,30,30,30);
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setSpacing(20);
+    mainLayout->setContentsMargins(30,30,30,30);
 
     QLabel *titleLabel = new QLabel("Статус подключения");
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setStyleSheet("font-size: 20px; font-weight: bold; color: #2c3e50; margin-bottom: 20px;");
-    mainLayot->addWidget(titleLabel);
+    mainLayout->addWidget(titleLabel);
 
-    QGridLayout *gridLayot = new QGridLayout;
-    gridLayot->setSpacing(30);
-    gridLayot->setContentsMargins(0,0,0,0);
+    QGridLayout *gridLayout = new QGridLayout;
+    gridLayout->setSpacing(30);
+    gridLayout->setContentsMargins(0,0,0,0);
 
+    // Создаем кнопки
     btnStartServer = new QPushButton("Старт сервера");
     btnConnectClient = new QPushButton("Подключиться к клиенту");
-    gridLayot->addWidget(btnStartServer, 0, 0);
-    gridLayot->addWidget(btnConnectClient, 0, 1);
-    mainLayot->addLayout(gridLayot);
-    mainLayot->addStretch();
+    btnStartServer->setFixedSize(200, 50);
+    btnConnectClient->setFixedSize(200, 50);
+
+    // Создаем кружки статуса
+    serverStatusCircle = new QLabel();
+    clientStatusCircle = new QLabel();
+    serverStatusCircle->setFixedSize(60, 60);
+    clientStatusCircle->setFixedSize(60, 60);
+    serverStatusCircle->setAlignment(Qt::AlignCenter);
+    clientStatusCircle->setAlignment(Qt::AlignCenter);
+
+    // Создаем подписи
+    serverLabel = new QLabel("Сервер");
+    clientLabel = new QLabel("Клиент");
+    serverLabel->setAlignment(Qt::AlignCenter);
+    clientLabel->setAlignment(Qt::AlignCenter);
+    serverLabel->setStyleSheet("font-weight: bold;");
+    clientLabel->setStyleSheet("font-weight: bold;");
+
+    // Обновляем отображение статуса
+    updateStatusDisplays();
+
+    // Добавляем виджеты в grid layout
+    gridLayout->addWidget(btnStartServer, 0, 0);
+    gridLayout->addWidget(btnConnectClient, 0, 1);
+    gridLayout->addWidget(serverStatusCircle, 1, 0, Qt::AlignCenter);
+    gridLayout->addWidget(clientStatusCircle, 1, 1, Qt::AlignCenter);
+    gridLayout->addWidget(serverLabel, 2, 0);
+    gridLayout->addWidget(clientLabel, 2, 1);
+
+    mainLayout->addLayout(gridLayout);
+    mainLayout->addStretch();
+}
+
+void HomePage::updateStatusDisplays()
+{
+    // Обновляем кружок сервера
+    if (serverConnected) {
+        serverStatusCircle->setStyleSheet(
+            "border-radius: 30px;"
+            "background-color: #2ecc71;"  // Зеленый
+            "border: 2px solid #27ae60;"
+            );
+    } else {
+        serverStatusCircle->setStyleSheet(
+            "border-radius: 30px;"
+            "background-color: #e74c3c;"  // Красный
+            "border: 2px solid #c0392b;"
+            );
+    }
+
+    // Обновляем кружок клиента
+    if (clientConnected) {
+        clientStatusCircle->setStyleSheet(
+            "border-radius: 30px;"
+            "background-color: #2ecc71;"  // Зеленый
+            "border: 2px solid #27ae60;"
+            );
+    } else {
+        clientStatusCircle->setStyleSheet(
+            "border-radius: 30px;"
+            "background-color: #e74c3c;"  // Красный
+            "border: 2px solid #c0392b;"
+            );
+    }
+}
+
+void HomePage::setServerStatus(bool connected)
+{
+    serverConnected = connected;
+    updateStatusDisplays();
+}
+
+void HomePage::setClientStatus(bool connected)
+{
+    clientConnected = connected;
+    updateStatusDisplays();
+}
+
+void HomePage::resetStatus()
+{
+    serverConnected = false;
+    clientConnected = false;
+    updateStatusDisplays();
 }
