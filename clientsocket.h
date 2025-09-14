@@ -1,5 +1,6 @@
 #ifndef CLIENTSOCKET_H
 #define CLIENTSOCKET_H
+#include "constants.h"
 #include <QObject>
 #include <QString>
 #include <QTcpSocket>
@@ -15,7 +16,7 @@ public slots:
     void doWork();
     void setConnectionParams(const QString &ip, const QString &port);
     void disconnectSocket();
-    void receiveCommandPrinter();
+    void receiveCommandPrinter(const QString &command, const Constants::TypeCommandDocod commandType);
 
 private slots:
     void onConnected();
@@ -30,6 +31,9 @@ private:
     QTcpSocket* socket;
     QString printer_ip;
     QString printer_port;
+
+    // Вспомогательные методы
+    void handleAnswer();
 
 };
 
