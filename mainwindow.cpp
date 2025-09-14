@@ -11,11 +11,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     stackedWidget = new QStackedWidget(this);
     setCentralWidget(stackedWidget);
 
+    this->setWindowIcon(QIcon(":/image/MakroScales.png"));
+    this->setWindowTitle("MakroScales");
+
     setupPages();
     createActions();
     createMenus();
-
-    setWindowTitle("Главная - Мониторинг системы");
     resize(800, 600);
 }
 
@@ -64,23 +65,25 @@ void MainWindow::createMenus()
 void MainWindow::showHome()
 {
     stackedWidget->setCurrentIndex(0);
-    setWindowTitle("Главная - Мониторинг системы");
 }
 
 void MainWindow::showSettings()
 {
     stackedWidget->setCurrentIndex(1);
-    setWindowTitle("Настройки - Мониторинг системы");
 }
 
 void MainWindow::showCounters()
 {
     stackedWidget->setCurrentIndex(2);
-    setWindowTitle("Счётчики - Мониторинг системы");
 }
 
 void MainWindow::showLogs()
 {
     stackedWidget->setCurrentIndex(3);
-    setWindowTitle("Логи - Мониторинг системы");
+}
+
+
+void changeStatusModes(bool checked)
+{
+
 }

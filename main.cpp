@@ -3,10 +3,13 @@
 #include <QApplication>
 #include <QLocale>
 #include <QTranslator>
+#include <QThread>
+#include <QThreadPool>
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    QThreadPool::globalInstance()->setMaxThreadCount(8);
 
     QTranslator translator;
     const QStringList uiLanguages = QLocale::system().uiLanguages();

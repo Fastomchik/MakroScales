@@ -1,15 +1,15 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "counterspage.h"
+#include "homepage.h"
+#include "logspage.h"
+#include "settingspage.h"
 #include <QMainWindow>
+#include <QThread>
 #include <QAction>
 #include <QStackedWidget>
-
-// Предварительное объявление классов (чтобы не включать заголовки)
-class HomePage;
-class SettingsPage;
-class CountersPage;
-class LogsPage;
+#include <QIcon>
 
 class MainWindow : public QMainWindow
 {
@@ -30,20 +30,23 @@ private:
     void createActions();
     void setupPages();
 
-    // Действия меню
     QAction *actionHome;
     QAction *actionSettings;
     QAction *actionCounters;
     QAction *actionLogs;
 
-    // Виджет для переключения страниц
     QStackedWidget *stackedWidget;
 
-    // Указатели на страницы
     HomePage *homePage;
     SettingsPage *settingsPage;
     CountersPage *countersPage;
     LogsPage *logsPage;
+
+    QThread *clientSocket;
+    QThread *serverSocket;
+
+signals:
+    void changeStatusModes(bool checked);
 };
 
 #endif // MAINWINDOW_H
