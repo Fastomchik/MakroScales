@@ -4,7 +4,6 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-    constants = new Constants(this);
 
     stackedWidget = new QStackedWidget(this);
     setCentralWidget(stackedWidget);
@@ -12,6 +11,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     this->setWindowIcon(QIcon(":/image/MakroScales.png"));
     this->setWindowTitle("MakroScales");
 
+    constants = new Constants(this);
     setupPages();
     createActions();
     createMenus();

@@ -1,4 +1,9 @@
 #include "constants.h"
+#include "bridgelinxtocab.h"
+#include "clientsocket.h"
+#include "serversocket.h"
+
+#include <QDebug>
 
 QQueue<QByteArray> printQueue;       // Теперь переменная существует в памяти
 QQueue<QString> makrolineQueue;      // Инициализируется по умолчанию
@@ -12,6 +17,9 @@ Constants::Constants(QObject *parent)
     logsPage(nullptr)
 
 {
+    initializeThread();
+    initializeSettings();
+    initializeSignal();
     initializePages();
 }
 
@@ -23,6 +31,39 @@ Constants::~Constants()
     delete logsPage;
 }
 
+void Constants::initializeThread()
+{
+    bridgeWorkerCab = new BridgeLinxtoCab();
+    printerWorker = new ClientSocket();
+    serverWorker = new Server();
+
+    serverThread = new QThread(this);
+    printerThread = new QThread(this);
+
+    serverWorker->moveToThread(serverThread);
+    printerWorker->moveToThread(printerThread);
+    qDebug() << " " <<  printerThread << "\t" << serverThread << "\n"
+             << printerWorker << "\t" << bridgeWorkerCab << "\n"
+             << serverWorker;
+}
+
+void Constants::initializeSettings()
+{
+}
+
+void Constants::initializeSignal()
+{
+    // Потоки
+    connect(serverWorker, &QObject::destroyed, serverThread, &QThread::quit);
+    connect(printerWorker, &QObject::destroyed, printerThread, &QThread::quit);
+    // connect(bridgeWorkerCab, &QObject::destroyed, serverThread, &QThread::quit);
+
+    // Сигналы логов и оконных менеджеров
+    connect(printerWorker, &ClientSocket::logMessage, logsPage, &LogsPage::addLogMessage);
+    connect(serverWorker, &Server::logMessage, logsPage, &LogsPage::addLogMessage);
+    connect(bridgeWorkerCab, &BridgeLinxtoCab::logMessage, logsPage, &LogsPage::addLogMessage);
+}
+
 void Constants::initializePages()
 {
     homePage = new HomePage;
@@ -30,3 +71,5 @@ void Constants::initializePages()
     countersPage = new CountersPage;
     logsPage = new LogsPage;
 }
+
+

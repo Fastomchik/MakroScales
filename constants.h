@@ -1,13 +1,19 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
+
+class BridgeLinxtoCab;
+class ClientSocket;
+class Server;
+
+
 #include "homepage.h"
 #include "settingspage.h"
 #include "counterspage.h"
 #include "logspage.h"
-
 #include <QObject>
 #include <QQueue>
 #include <QMutex>
+#include <QThread>
 
 
 extern QQueue<QByteArray> printQueue;
@@ -216,8 +222,19 @@ public:
     };
     Q_ENUM(TypeCommandCab)
 
+
+    // Обьекты
+    BridgeLinxtoCab *bridgeWorkerCab;
+    ClientSocket *printerWorker;
+    Server *serverWorker;
+
+    //Потоки
+    QThread* printerThread;
+    QThread* serverThread;
+
+
+
     // Константы
-    void initializePages();
     static inline uint batchCount = 0; // Количество продуктов в текущей сессии
     static inline uint totalCount = 0; // Общее количество продуктов
     static inline uint countPrinted{0};// Счётчик напечатанных этикеток принтером
@@ -234,6 +251,10 @@ public:
     static inline LinxState currentStatusMakroline = LinxState::Shutdown;
 
 private:
+    void initializeThread();
+    void initializeSettings();
+    void initializePages();
+    void initializeSignal();
 
 
 };

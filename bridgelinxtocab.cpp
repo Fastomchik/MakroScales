@@ -2,17 +2,17 @@
 
 
 
-bridgelinxtocab::bridgelinxtocab(QObject *parent) : QObject(parent)
+BridgeLinxtoCab::BridgeLinxtoCab(QObject *parent) : QObject(parent)
 {
     QSettings settings("MakroSoft", "MakroRetranslator");
     Constants::labelTemplate = settings.value("label/template").toString();
     QTimer* m_updateTimer = new QTimer(this);
-    connect(m_updateTimer, &QTimer::timeout, this, &bridgelinxtocab::updateAllCount);
+    connect(m_updateTimer, &QTimer::timeout, this, &BridgeLinxtoCab::updateAllCount);
     m_updateTimer->start(3000);
 }
 
 // SHD|code=12345|date_time=12.05.2001|timestamp=xxxxxx|SHD|code=12345|date_time=12.05.2001|timestamp=xxxxxx|SHD|code=12345|date_time=12.05.2001|timestamp=xxxxxx|
-void bridgelinxtocab::processLinxCommand(const QByteArray &raw)
+void BridgeLinxtoCab::processLinxCommand(const QByteArray &raw)
 {
     if (raw.isEmpty()) {
         qDebug() << "Пустые данные пришли";
@@ -129,7 +129,7 @@ void bridgelinxtocab::processLinxCommand(const QByteArray &raw)
 }
 
 //STS|<overallstate>|<errorstate>|<currentjob>|<batchcount>|<totalcount>|<CR>
-void bridgelinxtocab::handleRequestState()
+void BridgeLinxtoCab::handleRequestState()
 {
     QByteArray response = QString("STS|%1|%2|DemoJob|%3|%4|")
     //.arg(3)
@@ -143,7 +143,7 @@ void bridgelinxtocab::handleRequestState()
 }
 
 // Принимает обновленный статус от принтера Docod
-void bridgelinxtocab::handlePrinterState(Constants::CabState state)
+void BridgeLinxtoCab::handlePrinterState(Constants::CabState state)
 {
     Constants::CabState newState = static_cast<Constants::CabState>(state);
 
@@ -172,7 +172,7 @@ void bridgelinxtocab::handlePrinterState(Constants::CabState state)
 }
 
 // Запрос смены состояния от софта
-void bridgelinxtocab::handleSetState(const QStringList &parts)
+void BridgeLinxtoCab::handleSetState(const QStringList &parts)
 {
     // Проверка формата команды
     if (parts.size() < 2) {
@@ -240,17 +240,17 @@ void bridgelinxtocab::handleSetState(const QStringList &parts)
     qDebug() << "[Data] Отправлена команда:" << docodCommand;
 }
 
-void bridgelinxtocab::handleRequestQueueSize() {
+void BridgeLinxtoCab::handleRequestQueueSize() {
     qDebug() << "[Data] Количество кодов в буфере принтера:" << Constants::countBufferInPrinter;
     emit responseToMakroline(QString("SRC|%1").arg(Constants::countBufferInPrinter).toUtf8());
 }
 
-void bridgelinxtocab::handlePrint()
+void BridgeLinxtoCab::handlePrint()
 {
     manualPrint();
 }
 
-void bridgelinxtocab::handleSelectJob(const QStringList &parts)
+void BridgeLinxtoCab::handleSelectJob(const QStringList &parts)
 {
     QString jobName = parts.value(1).trimmed();
 
@@ -268,12 +268,12 @@ void bridgelinxtocab::handleSelectJob(const QStringList &parts)
     emit responseToMakroline("ACK");
 }
 
-void bridgelinxtocab::handleRequestAsyncState()
+void BridgeLinxtoCab::handleRequestAsyncState()
 {
     emit responseToMakroline("ACK");
 }
 
-void bridgelinxtocab::handleClearFaults()
+void BridgeLinxtoCab::handleClearFaults()
 {
     auto str = Constants::TypeCommandCabText.value(Constants::TypeCommandCab::ClearBuffers);
     QByteArray cmd = getConvertStringToByte(str);
@@ -281,7 +281,7 @@ void bridgelinxtocab::handleClearFaults()
     emit responseToMakroline("ACK");
 }
 
-void bridgelinxtocab::handleAddToBuffer(const QStringList &parts)
+void BridgeLinxtoCab::handleAddToBuffer(const QStringList &parts)
 {
     if (parts.size() < 2) {
         qWarning() << "[Warning] Неверное количество parts:" << parts.size();
@@ -329,14 +329,14 @@ void bridgelinxtocab::handleAddToBuffer(const QStringList &parts)
 }
 
 
-void bridgelinxtocab::handleAddToQueue(const QStringList &parts)
+void BridgeLinxtoCab::handleAddToQueue(const QStringList &parts)
 {
     // Аналогично handleAddToBuffer, если логика совпадает
     handleAddToBuffer(parts);
 }
 
 
-void bridgelinxtocab::handleClearQueue()
+void BridgeLinxtoCab::handleClearQueue()
 {
     QByteArray cmd = Constants::TypeCommandCabText.value(Constants::TypeCommandCab::ClearBuffers);
     qDebug() << cmd;
@@ -346,12 +346,12 @@ void bridgelinxtocab::handleClearQueue()
     //emit sendrequestBufferSizeTSC(&printedBufferSize);
 }
 
-void bridgelinxtocab::handleUnknownCommand()
+void BridgeLinxtoCab::handleUnknownCommand()
 {
     emit responseToMakroline("ERR");
 }
 
-void bridgelinxtocab::handleUpdateJobNamed(const QStringList &parts)
+void BridgeLinxtoCab::handleUpdateJobNamed(const QStringList &parts)
 {
     emit responseToMakroline("SFS|951744|");
 }
@@ -360,7 +360,7 @@ void bridgelinxtocab::handleUpdateJobNamed(const QStringList &parts)
 // Вспомогательные методы
 // ========================================================
 
-QByteArray bridgelinxtocab::generateCommandFromTemplate()
+QByteArray BridgeLinxtoCab::generateCommandFromTemplate()
 {
     if (makrolineQueue.isEmpty()) {
         return QByteArray();
@@ -426,7 +426,7 @@ QByteArray bridgelinxtocab::generateCommandFromTemplate()
     return QByteArray();
 }
 
-bool bridgelinxtocab::isValidStateTransition(Constants::LinxState current, Constants::LinxState target) const
+bool BridgeLinxtoCab::isValidStateTransition(Constants::LinxState current, Constants::LinxState target) const
 {
     if (current == target) {
         return true;
@@ -459,7 +459,7 @@ bool bridgelinxtocab::isValidStateTransition(Constants::LinxState current, Const
 }
 
 
-void bridgelinxtocab::manualPrint()
+void BridgeLinxtoCab::manualPrint()
 {
     /*if (!printQueue.isEmpty() && !Constants::AutoAndManualModes)
     {
@@ -470,16 +470,16 @@ void bridgelinxtocab::manualPrint()
     }*/
 }
 
-void bridgelinxtocab::autoPrinted()
+void BridgeLinxtoCab::autoPrinted()
 {
-    QTimer::singleShot(0, this, &bridgelinxtocab::processPrintQueue);
+    QTimer::singleShot(0, this, &BridgeLinxtoCab::processPrintQueue);
 }
 
-void bridgelinxtocab::processPrintQueue()
+void BridgeLinxtoCab::processPrintQueue()
 {
 }
 
-void bridgelinxtocab::changeAutoAndManualModes(bool checked)
+void BridgeLinxtoCab::changeAutoAndManualModes(bool checked)
 {
     Constants::AutoAndManualModes = checked;
     if (Constants::AutoAndManualModes && !printQueue.isEmpty()) {
@@ -489,7 +489,7 @@ void bridgelinxtocab::changeAutoAndManualModes(bool checked)
 }
 
 
-void bridgelinxtocab::updateAllCount()
+void BridgeLinxtoCab::updateAllCount()
 {
     qDebug() << "[Data] Обновление счётчиков:\n"
              << "Буфер печати принтера (исскуственная):" << printQueue.size() << "\n"
@@ -501,7 +501,7 @@ void bridgelinxtocab::updateAllCount()
 }
 
 //-----------------------------Геттеры-------------------------------------
-QByteArray bridgelinxtocab::getConvertStringToByte(const QString& string)
+QByteArray BridgeLinxtoCab::getConvertStringToByte(const QString& string)
 {
     QByteArray result;
     const QStringList byteStrings = string.split(' ', Qt::SkipEmptyParts);
@@ -520,12 +520,12 @@ QByteArray bridgelinxtocab::getConvertStringToByte(const QString& string)
 }
 
 
-QString bridgelinxtocab::getErrorState() const
+QString BridgeLinxtoCab::getErrorState() const
 {
     return QString();
 }
 
-QString bridgelinxtocab::getCurrentJob() const
+QString BridgeLinxtoCab::getCurrentJob() const
 {
     return QString();
 }

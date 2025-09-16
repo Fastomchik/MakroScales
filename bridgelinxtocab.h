@@ -12,14 +12,15 @@
 #include <QWaitCondition>
 #include <QMutex>
 
-class bridgelinxtocab : public QObject
+class BridgeLinxtoCab : public QObject
 {
     Q_OBJECT
 public:
-    explicit bridgelinxtocab(QObject *parent = nullptr);
+    explicit BridgeLinxtoCab(QObject *parent = nullptr);
 signals:
     void commandToPrinter(const QByteArray &docodCommand, Constants::TypeCommandCab commandtype);
     void responseToMakroline(const QByteArray &response);
+    void logMessage(const QString &message);
     void updateSpinBox(Constants::SpinBoxType type, int value);
 
 public slots:
