@@ -6,23 +6,24 @@ BridgeLinxtoCab::BridgeLinxtoCab(QObject *parent) : QObject(parent)
 {
     QSettings settings("MakroSoft", "MakroRetranslator");
     Constants::labelTemplate = settings.value("label/template").toString();
-    QTimer* m_updateTimer = new QTimer(this);
+
+    /*QTimer* m_updateTimer = new QTimer(this);
     connect(m_updateTimer, &QTimer::timeout, this, &BridgeLinxtoCab::updateAllCount);
-    m_updateTimer->start(3000);
+    m_updateTimer->start(3000);*/
 }
 
 // SHD|code=12345|date_time=12.05.2001|timestamp=xxxxxx|SHD|code=12345|date_time=12.05.2001|timestamp=xxxxxx|SHD|code=12345|date_time=12.05.2001|timestamp=xxxxxx|
 void BridgeLinxtoCab::processLinxCommand(const QByteArray &raw)
 {
     if (raw.isEmpty()) {
-        qDebug() << "Пустые данные пришли";
+        emit logMessage("Пустые данные пришли");
         emit responseToMakroline("ERR|EMPTY_DATA");
         return;
     }
 
     QByteArray fixedRaw = raw;
     if (fixedRaw.size() % 2 != 0) {
-        qDebug() << "Добавляем нулевой байт в конец";
+        emit logMessage("Добавляем нулевой байт в конец");
         fixedRaw.append('\0');
     }
 
@@ -32,7 +33,7 @@ void BridgeLinxtoCab::processLinxCommand(const QByteArray &raw)
                                  ).trimmed();
 
     if (rawUtf16.isEmpty()) {
-        qWarning() << "Ошибка конвертирования в UTF-16";
+        emit logMessage("Ошибка конвертирования в UTF-16");
         emit responseToMakroline("ERR|INVALID_UTF16");
         return;
     }
@@ -41,22 +42,22 @@ void BridgeLinxtoCab::processLinxCommand(const QByteArray &raw)
     const QStringList individualCommands = rawUtf16.split('\r', Qt::SkipEmptyParts);
 
     if (individualCommands.isEmpty()) {
-        qWarning() << "Не удалось выделить команды из пакета:" << rawUtf16;
+        emit logMessage("Не удалось выделить команды из пакета: " + rawUtf16);
         emit responseToMakroline("ERR|NO_VALID_COMMANDS");
         return;
     }
 
-    qDebug() << "[Data] В пакете найдено команд:" << individualCommands.size();
+    emit logMessage("[System] В пакете найдено команд: " + QString::number(individualCommands.size()));
 
     // Обрабатываем КАЖДУЮ команду из пакета по отдельности
     for (const QString &singleCommand : individualCommands) {
         QString trimmedCommand = singleCommand.trimmed();
         if (trimmedCommand.isEmpty()) {
-            qDebug() << "Пропуск пустой подстроки после split по \\r";
+            emit logMessage("Пропуск пустой подстроки после split по \\r");
             continue;
         }
 
-        qDebug() << "[Data] Обработка команды:" << trimmedCommand;
+        emit logMessage("[System] Обработка команды: " + trimmedCommand);
 
         const QStringList parts = trimmedCommand.split('|');
         const QString command = parts.value(0).toUpper();
@@ -74,55 +75,55 @@ void BridgeLinxtoCab::processLinxCommand(const QByteArray &raw)
         // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Объединяем обработку AddToBuffer и AddToQueue
         switch(cmdType) {
         case Constants::TypeLinxCommand::Print:
-            qDebug() << "[Data] Получена команда от ПО: Сигнал на печать" << trimmedCommand;
+            emit logMessage("[System] Получена команда от ПО: Сигнал на печать " + trimmedCommand);
             handlePrint();
             break;
         case Constants::TypeLinxCommand::RequestState:
-            qDebug() << "[Data] Получена команда от ПО: Запрос состояния" << trimmedCommand;
+            emit logMessage("[System] Получена команда от ПО: Запрос состояния " + trimmedCommand);
             handleRequestState();
             break;
         case Constants::TypeLinxCommand::SelectJob:
-            qDebug() << "[Data] Получена команда от ПО: Выбор задания" << trimmedCommand;
+            emit logMessage("[System] Получена команда от ПО: Выбор задания " + trimmedCommand);
             handleSelectJob(parts);
             break;
         case Constants::TypeLinxCommand::UpdateJobNamed:
-            qDebug() << "[Data] Получена команда от ПО: Обновление полей" << trimmedCommand;
+            emit logMessage("[System] Получена команда от ПО: Обновление полей " + trimmedCommand);
             handleUpdateJobNamed(parts);
             break;
         case Constants::TypeLinxCommand::RequestAsyncState:
-            qDebug() << "[Data] Получена команда от ПО: Запрос обновления состояния" << trimmedCommand;
+            emit logMessage("[System] Получена команда от ПО: Запрос обновления состояния " + trimmedCommand);
             handleRequestAsyncState();
             break;
         case Constants::TypeLinxCommand::RequestQueueSize:
-            qDebug() << "[Data] Получена команда от ПО: Запрос размера буфера" << trimmedCommand;
+            emit logMessage("[System] Получена команда от ПО: Запрос размера буфера " + trimmedCommand);
             handleRequestQueueSize();
             break;
         case Constants::TypeLinxCommand::SetState:
-            qDebug() << "[Data] Получена команда от ПО: Смена состояния" << trimmedCommand;
+            emit logMessage("[System] Получена команда от ПО: Смена состояния " + trimmedCommand);
             handleSetState(parts);
             break;
 
             // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Объединяем обработку этих двух команд
         case Constants::TypeLinxCommand::AddToBuffer:
         case Constants::TypeLinxCommand::AddToQueue:
-            qDebug() << "[Data] Получена команда от ПО: Пополнение очереди" << trimmedCommand;
+            emit logMessage("[System] Получена команда от ПО: Пополнение очереди " + trimmedCommand);
             handleAddToBuffer(parts);
             break;
 
         case Constants::TypeLinxCommand::ClearFaults:
-            qDebug() << "[Data] Получена команда от ПО: Сброс аварий" << trimmedCommand;
+            emit logMessage("[System] Получена команда от ПО: Сброс аварий " + trimmedCommand);
             handleClearFaults();
             break;
         case Constants::TypeLinxCommand::ClearQueue:
-            qDebug() << "[Data] Получена команда от ПО: Сброс очереди SCB" << trimmedCommand;
+            emit logMessage("[System] Получена команда от ПО: Сброс очереди SCB " + trimmedCommand);
             handleClearQueue();
             break;
         case Constants::TypeLinxCommand::Unknown:
-            qDebug() << "[Data] Неизвестная команда от ПО" << trimmedCommand;
+            emit logMessage("[System] Неизвестная команда от ПО " + trimmedCommand);
             handleUnknownCommand();
             break;
         default:
-            qDebug() << "[Data] Команда не требует обработки:" << trimmedCommand;
+            emit logMessage("[System] Команда не требует обработки: " + trimmedCommand);
             break;
         }
     }
@@ -150,14 +151,14 @@ void BridgeLinxtoCab::handlePrinterState(Constants::CabState state)
     if (Constants::currentStatusCab != newState) {
         Constants::currentStatusCab = newState;
         // Можно добавить логгирование
-        qDebug() << "[Data] Новое состояние от принтера" << static_cast<int>(newState);
+        emit logMessage("[System] Новое состояние от принтера " + QString::number(static_cast<int>(newState)));
     }
 
     // Автоматический переход из ShuttingDown в Shut down
     if (Constants::currentStatusMakroline == Constants::LinxState::ShuttingDown &&
         Constants::currentStatusCab == Constants::CabState::Stop) {
 
-        qDebug() << "[Data] Автоматический переход из ShuttingDown в Shut down";
+        emit logMessage("[System] Автоматический переход из ShuttingDown в Shut down");
         Constants::currentStatusMakroline = Constants::LinxState::Shutdown;
 
         // Отправляем команду подтверждения изменения состояния
@@ -176,7 +177,7 @@ void BridgeLinxtoCab::handleSetState(const QStringList &parts)
 {
     // Проверка формата команды
     if (parts.size() < 2) {
-        emit responseToMakroline("ERS|Неверный формат команды SST");
+        emit responseToMakroline("[System] ERS|Неверный формат команды SST");
         return;
     }
 
@@ -186,7 +187,7 @@ void BridgeLinxtoCab::handleSetState(const QStringList &parts)
 
     // Проверка валидности состояния
     if (!ok || targetState < 0 || targetState > 4) {
-        emit responseToMakroline("ERS|Недопустимое значение состояния");
+        emit responseToMakroline("[System] ERS|Недопустимое значение состояния");
         return;
     }
 
@@ -194,13 +195,13 @@ void BridgeLinxtoCab::handleSetState(const QStringList &parts)
 
     // Проверка допустимости перехода состояний
     if (!isValidStateTransition(Constants::currentStatusMakroline, requestedState)) {
-        emit responseToMakroline("ERS|Недопустимый переход состояний");
+        emit responseToMakroline("[System] ERS|Недопустимый переход состояний");
         return;
     }
 
     // Дополнительная проверка для состояния "Running"
     if (requestedState == Constants::LinxState::Running && Constants::labelTemplate.isEmpty()) {
-        emit responseToMakroline("ERS|Не задан шаблон этикетки");
+        emit responseToMakroline("[System] ERS|Не задан шаблон этикетки");
         return;
     }
 
@@ -224,7 +225,7 @@ void BridgeLinxtoCab::handleSetState(const QStringList &parts)
         break;
 
     default:
-        emit responseToMakroline("ERS|Неизвестное состояние");
+        emit responseToMakroline("[System] ERS|Неизвестное состояние");
         return;
     }
 
@@ -235,13 +236,13 @@ void BridgeLinxtoCab::handleSetState(const QStringList &parts)
     emit responseToMakroline("ACK");
 
     // Логирование изменения состояния
-    qDebug() << "[Data] Изменение состояние Makroline:" << static_cast<int>(Constants::currentStatusMakroline);
-    qDebug() << "[Data] Изменение состояние Docod" << static_cast<int>(Constants::currentStatusCab);
-    qDebug() << "[Data] Отправлена команда:" << docodCommand;
+    emit logMessage("[System] Изменение состояние Makroline: " + QString::number(static_cast<int>(Constants::currentStatusMakroline)));
+    emit logMessage("[System] Изменение состояние Docod " + QString::number(static_cast<int>(Constants::currentStatusCab)));
+    emit logMessage("[System] Отправлена команда: " + QString(docodCommand));
 }
 
 void BridgeLinxtoCab::handleRequestQueueSize() {
-    qDebug() << "[Data] Количество кодов в буфере принтера:" << Constants::countBufferInPrinter;
+    emit logMessage("[System] Количество кодов в буфере принтера: " + QString::number(Constants::countBufferInPrinter));
     emit responseToMakroline(QString("SRC|%1").arg(Constants::countBufferInPrinter).toUtf8());
 }
 
@@ -263,8 +264,12 @@ void BridgeLinxtoCab::handleSelectJob(const QStringList &parts)
             Constants::variables[field] = value;
         }
     }
-    qDebug() << "[Data] Задание выбрано:" << jobName;
-    qDebug() << "[Data] Переменные задания:" << Constants::variables;
+    emit logMessage("[System] Задание выбрано: " + jobName);
+    QString variablesStr;
+    for (auto it = Constants::variables.constBegin(); it != Constants::variables.constEnd(); ++it) {
+        variablesStr += it.key() + "=" + it.value() + "; ";
+    }
+    emit logMessage("[System] Переменные задания: " + variablesStr);
     emit responseToMakroline("ACK");
 }
 
@@ -284,7 +289,7 @@ void BridgeLinxtoCab::handleClearFaults()
 void BridgeLinxtoCab::handleAddToBuffer(const QStringList &parts)
 {
     if (parts.size() < 2) {
-        qWarning() << "[Warning] Неверное количество parts:" << parts.size();
+        emit logMessage("[System] Неверное количество parts: " + QString::number(parts.size()));
         return;
     }
 
@@ -302,12 +307,12 @@ void BridgeLinxtoCab::handleAddToBuffer(const QStringList &parts)
     }
     else {
         // Пропускаем некорректную команду
-        qWarning() << "[Warning] Неизвестный формат команды:" << codeCommand;
+        emit logMessage("[System] Неизвестный формат команды: " + codeCommand);
         return;
     }
 
     if (rawCode.isEmpty()) {
-        qWarning() << "[Warning] Код с пустыми параметрами";
+        emit logMessage("[System] Код с пустыми параметрами");
         return;
     }
 
@@ -315,7 +320,7 @@ void BridgeLinxtoCab::handleAddToBuffer(const QStringList &parts)
     makrolineQueue.enqueue(rawCode);
 
     // Логируем состояние очереди
-    qDebug() << "[Queue] Добавлено кодов: 1, всего в очереди:" << makrolineQueue.size();
+    emit logMessage("[System] Добавлено кодов: 1, всего в очереди: " + QString::number(makrolineQueue.size()));
 
     // Генерируем команду — она сама снимет первый элемент очереди
     QByteArray cmd = generateCommandFromTemplate();
@@ -324,7 +329,7 @@ void BridgeLinxtoCab::handleAddToBuffer(const QStringList &parts)
         emit commandToPrinter(cmd, Constants::TypeCommandCab::AddCode);
         emit responseToMakroline("ACK");
     } else {
-        qWarning() << "[Warning] Сгенерированная команда пуста!";
+        emit logMessage("[System] Сгенерированная команда пуста!");
     }
 }
 
@@ -339,7 +344,7 @@ void BridgeLinxtoCab::handleAddToQueue(const QStringList &parts)
 void BridgeLinxtoCab::handleClearQueue()
 {
     QByteArray cmd = Constants::TypeCommandCabText.value(Constants::TypeCommandCab::ClearBuffers);
-    qDebug() << cmd;
+    emit logMessage(QString(cmd));
     emit commandToPrinter(cmd, Constants::TypeCommandCab::ClearBuffers);
     makrolineQueue.clear();
     emit responseToMakroline("ACK");
@@ -391,7 +396,7 @@ QByteArray BridgeLinxtoCab::generateCommandFromTemplate()
     }
 
     if (formattedCode.isEmpty()) {
-        qWarning() << "[Error] Не удалось отформатировать код:" << rawCode;
+        emit logMessage("[System] Не удалось отформатировать код: " + rawCode);
         return QByteArray();
     }
 
@@ -415,11 +420,11 @@ QByteArray BridgeLinxtoCab::generateCommandFromTemplate()
         } // Добавлена закрывающая скобка для цикла for
     } // Добавлена закрывающая скобка для if
 
-    qDebug() << "[Data] Итоговая команда:" << rendered;
+    emit logMessage("[System] Итоговая команда: " + rendered);
 
     if (!rendered.isEmpty()) {
         Constants::idLabel++;
-        qDebug() << "[Data] Счётчик IDLABEL:" << Constants::idLabel;
+        emit logMessage("[System] Счётчик IDLABEL: " + QString::number(Constants::idLabel));
         return rendered.toUtf8();
     }
 
@@ -464,7 +469,7 @@ void BridgeLinxtoCab::manualPrint()
     /*if (!printQueue.isEmpty() && !Constants::AutoAndManualModes)
     {
         QByteArray current = printQueue.dequeue();
-        qDebug() << "[Data] DOCOD Осталось в буфере PrintBuffer" << printQueue.size();
+        emit logMessage("[Data] DOCOD Осталось в буфере PrintBuffer " + QString::number(printQueue.size()));
         //emit commandToPrinter(current);
         Constants::countPrinted++;
     }*/
@@ -484,17 +489,17 @@ void BridgeLinxtoCab::changeAutoAndManualModes(bool checked)
     Constants::AutoAndManualModes = checked;
     if (Constants::AutoAndManualModes && !printQueue.isEmpty()) {
         autoPrinted();
-        qDebug() << "Cмена ручного режима на Автоматический" << checked;
+        emit logMessage("[System] Cмена ручного режима на Автоматический " + QString(checked ? "true" : "false"));
     }
 }
 
 
 void BridgeLinxtoCab::updateAllCount()
 {
-    qDebug() << "[Data] Обновление счётчиков:\n"
-             << "Буфер печати принтера (исскуственная):" << printQueue.size() << "\n"
-             << "Буфер печати макролайн (исскуственная):" << makrolineQueue.size() << "\n"
-             << "Бефера принтера" << Constants::countBufferInPrinter;
+    emit logMessage("[System] Обновление счётчиков:\n"
+                    "Буфер печати принтера (исскуственная): " + QString::number(printQueue.size()) + "\n"
+                                                           "Буфер печати макролайн (исскуственная): " + QString::number(makrolineQueue.size()) + "\n"
+                                                               "Бефера принтера: " + QString::number(Constants::countBufferInPrinter));
     emit updateSpinBox(Constants::SpinBoxType::MakrolineBuffer, makrolineQueue.size());
     emit updateSpinBox(Constants::SpinBoxType::PrinterBuffer, printQueue.size());
     emit updateSpinBox(Constants::SpinBoxType::ResponsePrinterBuffer, Constants::countBufferInPrinter);
@@ -512,7 +517,7 @@ QByteArray BridgeLinxtoCab::getConvertStringToByte(const QString& string)
         if (ok && byteValue >= 0 && byteValue <= 0xFF) {
             result.append(static_cast<char>(byteValue));
         } else {
-            qWarning() << "Invalid hex byte:" << byteStr;
+            emit logMessage("[System] Invalid hex byte: " + byteStr);
         }
     }
 

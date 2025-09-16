@@ -60,12 +60,18 @@ void CountersPage::setupUI()
     gridLayout->setContentsMargins(0, 0, 0, 0);
 
     // Создаём счётчики
-    bufferCodesCounter = new CounterWidget("Кол-во кодов в буфере");
+    countBufferInPrinterCounter = new CounterWidget("Кол-во кодов в буфере");
     lastWeightCounter = new CounterWidget("Последний вес");
+    totalCountСounter = new CounterWidget("Общее количество");
+    countPrintedCounter = new CounterWidget("Напеч. принтером");
+
+
 
     // Размещаем счётчики в ряд
-    gridLayout->addWidget(bufferCodesCounter, 0, 0);
+    gridLayout->addWidget(countBufferInPrinterCounter, 0, 0);
     gridLayout->addWidget(lastWeightCounter, 0, 1);
+    gridLayout->addWidget(totalCountСounter, 1, 0);
+    gridLayout->addWidget(countPrintedCounter, 1, 1);
 
     mainLayout->addLayout(gridLayout);
     mainLayout->addStretch();
@@ -86,8 +92,22 @@ void CountersPage::setLastWeight(int weight)
     updateDisplay();
 }
 
+void CountersPage::setTotalCountСounter(int count)
+{
+    totalCount = count;
+    updateDisplay();
+}
+
+void CountersPage::setCountPrintedCounter(int count)
+{
+    countPrinted = count;
+    updateDisplay();
+}
+
 void CountersPage::updateDisplay()
 {
-    bufferCodesCounter->setValue(bufferCodesCount, "шт");
+    countBufferInPrinterCounter->setValue(bufferCodesCount, "шт");
     lastWeightCounter->setValue(lastWeight, "г");
+    totalCountСounter->setValue(totalCount, "шт");
+    countPrintedCounter->setValue(countPrinted, "шт");
 }

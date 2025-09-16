@@ -16,6 +16,7 @@ void SettingsPage::setupUI()
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(20);
     mainLayout->setContentsMargins(30, 30, 30, 30);
+    mainLayout->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
     QLabel *titleLabel = new QLabel("Конфигурация");
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setStyleSheet("font-size: 20px; font-weight: bold; color: #2c3e50; margin-bottom: 20px;");

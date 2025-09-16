@@ -19,8 +19,8 @@ Constants::Constants(QObject *parent)
 {
     initializeThread();
     initializeSettings();
-    initializeSignal();
     initializePages();
+    initializeSignal();
 }
 
 Constants::~Constants()

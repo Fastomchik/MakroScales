@@ -27,18 +27,24 @@ public:
     // Публичные методы для обновления значений извне
     void setBufferCodesCount(int count);
     void setLastWeight(int weight);
+    void setTotalCountСounter(int count);
+    void setCountPrintedCounter(int count);
 
 private:
     void setupUI();
     void updateDisplay();
 
     // Счётчики
-    CounterWidget *bufferCodesCounter;
+    CounterWidget *countBufferInPrinterCounter;
     CounterWidget *lastWeightCounter;
+    CounterWidget *totalCountСounter;
+    CounterWidget *countPrintedCounter;
 
     // Данные
-    int bufferCodesCount;
-    int lastWeight;
+    int bufferCodesCount = 0;
+    int lastWeight = 0;
+    int totalCount = 0;
+    int countPrinted = 0;
 };
 
 #endif // COUNTERSPAGE_H
