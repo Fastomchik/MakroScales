@@ -1,0 +1,531 @@
+#include "bridgelinxtocab.h"
+
+
+
+bridgelinxtocab::bridgelinxtocab(QObject *parent) : QObject(parent)
+{
+    QSettings settings("MakroSoft", "MakroRetranslator");
+    Constants::labelTemplate = settings.value("label/template").toString();
+    QTimer* m_updateTimer = new QTimer(this);
+    connect(m_updateTimer, &QTimer::timeout, this, &bridgelinxtocab::updateAllCount);
+    m_updateTimer->start(3000);
+}
+
+// SHD|code=12345|date_time=12.05.2001|timestamp=xxxxxx|SHD|code=12345|date_time=12.05.2001|timestamp=xxxxxx|SHD|code=12345|date_time=12.05.2001|timestamp=xxxxxx|
+void bridgelinxtocab::processLinxCommand(const QByteArray &raw)
+{
+    if (raw.isEmpty()) {
+        qDebug() << "Пустые данные пришли";
+        emit responseToMakroline("ERR|EMPTY_DATA");
+        return;
+    }
+
+    QByteArray fixedRaw = raw;
+    if (fixedRaw.size() % 2 != 0) {
+        qDebug() << "Добавляем нулевой байт в конец";
+        fixedRaw.append('\0');
+    }
+
+    const QString rawUtf16 = QString::fromUtf16(
+                                 reinterpret_cast<const char16_t*>(fixedRaw.constData()),
+                                 fixedRaw.size() / 2
+                                 ).trimmed();
+
+    if (rawUtf16.isEmpty()) {
+        qWarning() << "Ошибка конвертирования в UTF-16";
+        emit responseToMakroline("ERR|INVALID_UTF16");
+        return;
+    }
+
+    // Разбиваем весь пакет на отдельные команды по \r
+    const QStringList individualCommands = rawUtf16.split('\r', Qt::SkipEmptyParts);
+
+    if (individualCommands.isEmpty()) {
+        qWarning() << "Не удалось выделить команды из пакета:" << rawUtf16;
+        emit responseToMakroline("ERR|NO_VALID_COMMANDS");
+        return;
+    }
+
+    qDebug() << "[Data] В пакете найдено команд:" << individualCommands.size();
+
+    // Обрабатываем КАЖДУЮ команду из пакета по отдельности
+    for (const QString &singleCommand : individualCommands) {
+        QString trimmedCommand = singleCommand.trimmed();
+        if (trimmedCommand.isEmpty()) {
+            qDebug() << "Пропуск пустой подстроки после split по \\r";
+            continue;
+        }
+
+        qDebug() << "[Data] Обработка команды:" << trimmedCommand;
+
+        const QStringList parts = trimmedCommand.split('|');
+        const QString command = parts.value(0).toUpper();
+
+        static const QHash<QString, Constants::TypeLinxCommand> reverseCommandMap = [](){
+            QHash<QString, Constants::TypeLinxCommand> map;
+            for (auto it = Constants::LinxCommandText.begin(); it != Constants::LinxCommandText.end(); ++it) {
+                map.insert(QLatin1String(it.value()), it.key());
+            }
+            return map;
+        }();
+
+        Constants::TypeLinxCommand cmdType = reverseCommandMap.value(command, Constants::TypeLinxCommand::Unknown);
+
+        // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Объединяем обработку AddToBuffer и AddToQueue
+        switch(cmdType) {
+        case Constants::TypeLinxCommand::Print:
+            qDebug() << "[Data] Получена команда от ПО: Сигнал на печать" << trimmedCommand;
+            handlePrint();
+            break;
+        case Constants::TypeLinxCommand::RequestState:
+            qDebug() << "[Data] Получена команда от ПО: Запрос состояния" << trimmedCommand;
+            handleRequestState();
+            break;
+        case Constants::TypeLinxCommand::SelectJob:
+            qDebug() << "[Data] Получена команда от ПО: Выбор задания" << trimmedCommand;
+            handleSelectJob(parts);
+            break;
+        case Constants::TypeLinxCommand::UpdateJobNamed:
+            qDebug() << "[Data] Получена команда от ПО: Обновление полей" << trimmedCommand;
+            handleUpdateJobNamed(parts);
+            break;
+        case Constants::TypeLinxCommand::RequestAsyncState:
+            qDebug() << "[Data] Получена команда от ПО: Запрос обновления состояния" << trimmedCommand;
+            handleRequestAsyncState();
+            break;
+        case Constants::TypeLinxCommand::RequestQueueSize:
+            qDebug() << "[Data] Получена команда от ПО: Запрос размера буфера" << trimmedCommand;
+            handleRequestQueueSize();
+            break;
+        case Constants::TypeLinxCommand::SetState:
+            qDebug() << "[Data] Получена команда от ПО: Смена состояния" << trimmedCommand;
+            handleSetState(parts);
+            break;
+
+            // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Объединяем обработку этих двух команд
+        case Constants::TypeLinxCommand::AddToBuffer:
+        case Constants::TypeLinxCommand::AddToQueue:
+            qDebug() << "[Data] Получена команда от ПО: Пополнение очереди" << trimmedCommand;
+            handleAddToBuffer(parts);
+            break;
+
+        case Constants::TypeLinxCommand::ClearFaults:
+            qDebug() << "[Data] Получена команда от ПО: Сброс аварий" << trimmedCommand;
+            handleClearFaults();
+            break;
+        case Constants::TypeLinxCommand::ClearQueue:
+            qDebug() << "[Data] Получена команда от ПО: Сброс очереди SCB" << trimmedCommand;
+            handleClearQueue();
+            break;
+        case Constants::TypeLinxCommand::Unknown:
+            qDebug() << "[Data] Неизвестная команда от ПО" << trimmedCommand;
+            handleUnknownCommand();
+            break;
+        default:
+            qDebug() << "[Data] Команда не требует обработки:" << trimmedCommand;
+            break;
+        }
+    }
+}
+
+//STS|<overallstate>|<errorstate>|<currentjob>|<batchcount>|<totalcount>|<CR>
+void bridgelinxtocab::handleRequestState()
+{
+    QByteArray response = QString("STS|%1|%2|DemoJob|%3|%4|")
+    //.arg(3)
+    .arg(static_cast<int>(Constants::currentStatusMakroline))  // 0-4 (LinxState)
+        .arg(0)
+        .arg(Constants::batchCount)
+        .arg(Constants::totalCount)
+        .toUtf8();  // Преобразование в QByteArray
+
+    emit responseToMakroline(response);
+}
+
+// Принимает обновленный статус от принтера Docod
+void bridgelinxtocab::handlePrinterState(Constants::CabState state)
+{
+    Constants::CabState newState = static_cast<Constants::CabState>(state);
+
+    if (Constants::currentStatusCab != newState) {
+        Constants::currentStatusCab = newState;
+        // Можно добавить логгирование
+        qDebug() << "[Data] Новое состояние от принтера" << static_cast<int>(newState);
+    }
+
+    // Автоматический переход из ShuttingDown в Shut down
+    if (Constants::currentStatusMakroline == Constants::LinxState::ShuttingDown &&
+        Constants::currentStatusCab == Constants::CabState::Stop) {
+
+        qDebug() << "[Data] Автоматический переход из ShuttingDown в Shut down";
+        Constants::currentStatusMakroline = Constants::LinxState::Shutdown;
+
+        // Отправляем команду подтверждения изменения состояния
+        emit responseToMakroline("ACK");
+    }
+
+    // Обновляем ответ Makroline
+    emit responseToMakroline(QString("STS|%1|0|gs1dm|%2|%3")
+                                 .arg(static_cast<int>(newState))
+                                 .arg(Constants::countPrinted)
+                                 .arg(Constants::countPrinted).toUtf8());
+}
+
+// Запрос смены состояния от софта
+void bridgelinxtocab::handleSetState(const QStringList &parts)
+{
+    // Проверка формата команды
+    if (parts.size() < 2) {
+        emit responseToMakroline("ERS|Неверный формат команды SST");
+        return;
+    }
+
+    // Парсинг целевого состояния
+    bool ok;
+    int targetState = parts[1].toInt(&ok);
+
+    // Проверка валидности состояния
+    if (!ok || targetState < 0 || targetState > 4) {
+        emit responseToMakroline("ERS|Недопустимое значение состояния");
+        return;
+    }
+
+    Constants::LinxState requestedState = static_cast<Constants::LinxState>(targetState);
+
+    // Проверка допустимости перехода состояний
+    if (!isValidStateTransition(Constants::currentStatusMakroline, requestedState)) {
+        emit responseToMakroline("ERS|Недопустимый переход состояний");
+        return;
+    }
+
+    // Дополнительная проверка для состояния "Running"
+    if (requestedState == Constants::LinxState::Running && Constants::labelTemplate.isEmpty()) {
+        emit responseToMakroline("ERS|Не задан шаблон этикетки");
+        return;
+    }
+
+    // Формируем команду для Docod
+    QByteArray docodCommand;
+    switch(requestedState) {
+    case Constants::LinxState::StartingUp:// 1: Starting up;
+        break;
+    case Constants::LinxState::Running:   //  3: Running
+        docodCommand = Constants::TypeCommandCabText.value(Constants::TypeCommandCab::StartPrint);
+        Constants::currentStatusCab = Constants::CabState::Start;
+        emit commandToPrinter(docodCommand, Constants::TypeCommandCab::StartPrint);
+        break;
+
+    case Constants::LinxState::Shutdown:     // 0: Shut down
+    case Constants::LinxState::ShuttingDown: // 2: Shutting down
+    case Constants::LinxState::Offline:      // 4: Off-line
+        docodCommand = Constants::TypeCommandCabText.value(Constants::TypeCommandCab::StopPrint);
+        Constants::currentStatusCab = Constants::CabState::Stop;
+        emit commandToPrinter(docodCommand, Constants::TypeCommandCab::StopPrint);
+        break;
+
+    default:
+        emit responseToMakroline("ERS|Неизвестное состояние");
+        return;
+    }
+
+    // Обновляем текущее состояние
+    Constants::currentStatusMakroline = requestedState;
+
+    // Отправляем подтверждение
+    emit responseToMakroline("ACK");
+
+    // Логирование изменения состояния
+    qDebug() << "[Data] Изменение состояние Makroline:" << static_cast<int>(Constants::currentStatusMakroline);
+    qDebug() << "[Data] Изменение состояние Docod" << static_cast<int>(Constants::currentStatusCab);
+    qDebug() << "[Data] Отправлена команда:" << docodCommand;
+}
+
+void bridgelinxtocab::handleRequestQueueSize() {
+    qDebug() << "[Data] Количество кодов в буфере принтера:" << Constants::countBufferInPrinter;
+    emit responseToMakroline(QString("SRC|%1").arg(Constants::countBufferInPrinter).toUtf8());
+}
+
+void bridgelinxtocab::handlePrint()
+{
+    manualPrint();
+}
+
+void bridgelinxtocab::handleSelectJob(const QStringList &parts)
+{
+    QString jobName = parts.value(1).trimmed();
+
+    Constants::variables.clear();
+    for (int i = 2; i < parts.size(); ++i) {
+        QString pair = parts[i];
+        QString field = pair.section('=', 0, 0).trimmed();
+        QString value = pair.section('=', 1).trimmed();
+        if (!field.isEmpty()) {
+            Constants::variables[field] = value;
+        }
+    }
+    qDebug() << "[Data] Задание выбрано:" << jobName;
+    qDebug() << "[Data] Переменные задания:" << Constants::variables;
+    emit responseToMakroline("ACK");
+}
+
+void bridgelinxtocab::handleRequestAsyncState()
+{
+    emit responseToMakroline("ACK");
+}
+
+void bridgelinxtocab::handleClearFaults()
+{
+    auto str = Constants::TypeCommandCabText.value(Constants::TypeCommandCab::ClearBuffers);
+    QByteArray cmd = getConvertStringToByte(str);
+    emit commandToPrinter(cmd, Constants::TypeCommandCab::ClearBuffers);
+    emit responseToMakroline("ACK");
+}
+
+void bridgelinxtocab::handleAddToBuffer(const QStringList &parts)
+{
+    if (parts.size() < 2) {
+        qWarning() << "[Warning] Неверное количество parts:" << parts.size();
+        return;
+    }
+
+    // parts[1] теперь содержит строку с одним кодом, например:
+    // "~10104911205084589215\"M&l1X*ye;Wn~d02993dGVz|"
+    QString codeCommand = parts[1];
+    QString rawCode;
+
+    // Обрабатываем единственную команду
+    if (codeCommand.startsWith("code=")) {
+        rawCode = codeCommand.mid(5).remove("~d029").remove("\x1D");
+    }
+    else if (codeCommand.startsWith("SHD|code=")) {
+        rawCode = codeCommand.mid(9).remove("~d029").remove("\x1D");
+    }
+    else {
+        // Пропускаем некорректную команду
+        qWarning() << "[Warning] Неизвестный формат команды:" << codeCommand;
+        return;
+    }
+
+    if (rawCode.isEmpty()) {
+        qWarning() << "[Warning] Код с пустыми параметрами";
+        return;
+    }
+
+    // Добавляем код в очередь
+    makrolineQueue.enqueue(rawCode);
+
+    // Логируем состояние очереди
+    qDebug() << "[Queue] Добавлено кодов: 1, всего в очереди:" << makrolineQueue.size();
+
+    // Генерируем команду — она сама снимет первый элемент очереди
+    QByteArray cmd = generateCommandFromTemplate();
+
+    if (!cmd.isEmpty()) {
+        emit commandToPrinter(cmd, Constants::TypeCommandCab::AddCode);
+        emit responseToMakroline("ACK");
+    } else {
+        qWarning() << "[Warning] Сгенерированная команда пуста!";
+    }
+}
+
+
+void bridgelinxtocab::handleAddToQueue(const QStringList &parts)
+{
+    // Аналогично handleAddToBuffer, если логика совпадает
+    handleAddToBuffer(parts);
+}
+
+
+void bridgelinxtocab::handleClearQueue()
+{
+    QByteArray cmd = Constants::TypeCommandCabText.value(Constants::TypeCommandCab::ClearBuffers);
+    qDebug() << cmd;
+    emit commandToPrinter(cmd, Constants::TypeCommandCab::ClearBuffers);
+    makrolineQueue.clear();
+    emit responseToMakroline("ACK");
+    //emit sendrequestBufferSizeTSC(&printedBufferSize);
+}
+
+void bridgelinxtocab::handleUnknownCommand()
+{
+    emit responseToMakroline("ERR");
+}
+
+void bridgelinxtocab::handleUpdateJobNamed(const QStringList &parts)
+{
+    emit responseToMakroline("SFS|951744|");
+}
+
+// ========================================================
+// Вспомогательные методы
+// ========================================================
+
+QByteArray bridgelinxtocab::generateCommandFromTemplate()
+{
+    if (makrolineQueue.isEmpty()) {
+        return QByteArray();
+    }
+    QString rawCode = makrolineQueue.dequeue(); // Берет и УДАЛЯЕТ первый элемент из очереди
+    QString formattedCode;
+
+    // 1. Форматируем код с сохранением структуры [XX]значение
+    const QVector<Constants::CodeField> processingOrder = {
+        Constants::CodeField::Field01,
+        Constants::CodeField::Field21,
+        Constants::CodeField::Field93
+    };
+
+    QString remainingCode = rawCode;
+    for (Constants::CodeField field : processingOrder) {
+        QString fieldCode = Constants::fieldMap.key(field);
+        int fieldLength = Constants::fieldLengths.value(field);
+
+        int pos = remainingCode.indexOf(fieldCode);
+        if (pos >= 0 && pos + 2 + fieldLength <= remainingCode.length()) {
+            formattedCode += QString("[%1]%2")
+            .arg(fieldCode)
+                .arg(remainingCode.mid(pos + 2, fieldLength));
+
+            remainingCode.remove(pos, 2 + fieldLength);
+        }
+    }
+
+    if (formattedCode.isEmpty()) {
+        qWarning() << "[Error] Не удалось отформатировать код:" << rawCode;
+        return QByteArray();
+    }
+
+    // 2. Если шаблон пустой, используем отформатированный код как есть
+    QString rendered = Constants::labelTemplate.isEmpty()
+                           ? formattedCode
+                           : Constants::labelTemplate;
+
+    // 3. Заменяем плейсхолдеры в шаблоне (если есть)
+    if (!Constants::labelTemplate.isEmpty()) {
+        for (auto it = Constants::fieldMap.constBegin(); it != Constants::fieldMap.constEnd(); ++it) {
+            const QString& fieldCode = it.key();
+            QString fieldVar = QString("%Field%1%").arg(fieldCode);
+
+            QRegularExpression re(QString("\\[%1\\]([^\\[]+)").arg(fieldCode));
+            QRegularExpressionMatch match = re.match(formattedCode);
+
+            if (match.hasMatch()) {
+                rendered.replace(fieldVar, QString("[%1]%2").arg(fieldCode).arg(match.captured(1)));
+            }
+        } // Добавлена закрывающая скобка для цикла for
+    } // Добавлена закрывающая скобка для if
+
+    qDebug() << "[Data] Итоговая команда:" << rendered;
+
+    if (!rendered.isEmpty()) {
+        Constants::idLabel++;
+        qDebug() << "[Data] Счётчик IDLABEL:" << Constants::idLabel;
+        return rendered.toUtf8();
+    }
+
+    return QByteArray();
+}
+
+bool bridgelinxtocab::isValidStateTransition(Constants::LinxState current, Constants::LinxState target) const
+{
+    if (current == target) {
+        return true;
+    }
+    // Allowed state transitions according to the SST command specification
+    switch (current) {
+    case Constants::LinxState::Shutdown:    // 0: Shut down
+        return target == Constants::LinxState::StartingUp ||
+               target == Constants::LinxState::ShuttingDown;  // Only allowed to transition to 1: Starting up
+
+    case Constants::LinxState::StartingUp:  // 1: Starting up
+        return target == Constants::LinxState::Running ||    // Can transition to 3: Running
+               target == Constants::LinxState::Shutdown;     // Or back to 0: Shut down
+
+    case Constants::LinxState::Running:     // 3: Running
+        return target == Constants::LinxState::Offline ||    // Can transition to 4: Off-line
+               target == Constants::LinxState::ShuttingDown; // Or to 2: Shutting down
+
+    case Constants::LinxState::Offline:     // 4: Off-line
+        return target == Constants::LinxState::Running ||    // Can transition back to 3: Running
+               target == Constants::LinxState::ShuttingDown;  // Or to 2: Shutting down
+
+    case Constants::LinxState::ShuttingDown: // 2: Shutting down
+        return target == Constants::LinxState::Shutdown ||
+               target == Constants::LinxState::StartingUp;     // Only allowed to transition to 0: Shut down
+
+    default:
+        return false;  // Invalid current state (should never happen with proper enum usage)
+    }
+}
+
+
+void bridgelinxtocab::manualPrint()
+{
+    /*if (!printQueue.isEmpty() && !Constants::AutoAndManualModes)
+    {
+        QByteArray current = printQueue.dequeue();
+        qDebug() << "[Data] DOCOD Осталось в буфере PrintBuffer" << printQueue.size();
+        //emit commandToPrinter(current);
+        Constants::countPrinted++;
+    }*/
+}
+
+void bridgelinxtocab::autoPrinted()
+{
+    QTimer::singleShot(0, this, &bridgelinxtocab::processPrintQueue);
+}
+
+void bridgelinxtocab::processPrintQueue()
+{
+}
+
+void bridgelinxtocab::changeAutoAndManualModes(bool checked)
+{
+    Constants::AutoAndManualModes = checked;
+    if (Constants::AutoAndManualModes && !printQueue.isEmpty()) {
+        autoPrinted();
+        qDebug() << "Cмена ручного режима на Автоматический" << checked;
+    }
+}
+
+
+void bridgelinxtocab::updateAllCount()
+{
+    qDebug() << "[Data] Обновление счётчиков:\n"
+             << "Буфер печати принтера (исскуственная):" << printQueue.size() << "\n"
+             << "Буфер печати макролайн (исскуственная):" << makrolineQueue.size() << "\n"
+             << "Бефера принтера" << Constants::countBufferInPrinter;
+    emit updateSpinBox(Constants::SpinBoxType::MakrolineBuffer, makrolineQueue.size());
+    emit updateSpinBox(Constants::SpinBoxType::PrinterBuffer, printQueue.size());
+    emit updateSpinBox(Constants::SpinBoxType::ResponsePrinterBuffer, Constants::countBufferInPrinter);
+}
+
+//-----------------------------Геттеры-------------------------------------
+QByteArray bridgelinxtocab::getConvertStringToByte(const QString& string)
+{
+    QByteArray result;
+    const QStringList byteStrings = string.split(' ', Qt::SkipEmptyParts);
+
+    for (const QString& byteStr : byteStrings) {
+        bool ok;
+        int byteValue = byteStr.toInt(&ok, 16);
+        if (ok && byteValue >= 0 && byteValue <= 0xFF) {
+            result.append(static_cast<char>(byteValue));
+        } else {
+            qWarning() << "Invalid hex byte:" << byteStr;
+        }
+    }
+
+    return result;
+}
+
+
+QString bridgelinxtocab::getErrorState() const
+{
+    return QString();
+}
+
+QString bridgelinxtocab::getCurrentJob() const
+{
+    return QString();
+}

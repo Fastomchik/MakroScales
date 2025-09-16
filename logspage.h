@@ -13,7 +13,6 @@ public:
 private:
     void setupUI();
 
-
     QTextEdit *serverLogTextEdit;
     QTextEdit *clientLogTextEdit;
     QTextEdit *systemLogTextEdit;

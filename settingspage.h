@@ -14,12 +14,17 @@ class SettingsPage : public QWidget
 public:
     explicit SettingsPage(QWidget *parent = nullptr);
 
+private slots:
+    void onSaveButtonClicked();
+
 private:
     QLineEdit *serverIpEdit;
     QSpinBox *serverPortEdit;
     QLineEdit *clientIpEdit;
     QSpinBox *clientPortEdit;
     QPushButton *setSettings;
+
+    void setupUI();
 
 };
 

@@ -1,13 +1,11 @@
 #include "mainwindow.h"
-#include "homepage.h"
-#include "settingspage.h"
-#include "counterspage.h"
-#include "logspage.h"
 #include <QMenuBar>
-#include <QStackedWidget>
+#include <QIcon>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
+    constants = new Constants(this);
+
     stackedWidget = new QStackedWidget(this);
     setCentralWidget(stackedWidget);
 
@@ -26,17 +24,12 @@ MainWindow::~MainWindow()
 
 void MainWindow::setupPages()
 {
-    // Создаем страницы
-    homePage = new HomePage;
-    settingsPage = new SettingsPage;
-    countersPage = new CountersPage;
-    logsPage = new LogsPage;
 
     // Добавляем страницы в stacked widget
-    stackedWidget->addWidget(homePage);
-    stackedWidget->addWidget(settingsPage);
-    stackedWidget->addWidget(countersPage);
-    stackedWidget->addWidget(logsPage);
+    stackedWidget->addWidget(constants->homePage);
+    stackedWidget->addWidget(constants->settingsPage);
+    stackedWidget->addWidget(constants->countersPage);
+    stackedWidget->addWidget(constants->logsPage);
 }
 
 void MainWindow::createActions()

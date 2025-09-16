@@ -1,15 +1,11 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "counterspage.h"
-#include "homepage.h"
-#include "logspage.h"
-#include "settingspage.h"
+#include "constants.h"
 #include <QMainWindow>
 #include <QThread>
 #include <QAction>
 #include <QStackedWidget>
-#include <QIcon>
 
 class MainWindow : public QMainWindow
 {
@@ -36,11 +32,7 @@ private:
     QAction *actionLogs;
 
     QStackedWidget *stackedWidget;
-
-    HomePage *homePage;
-    SettingsPage *settingsPage;
-    CountersPage *countersPage;
-    LogsPage *logsPage;
+    Constants *constants;
 
     QThread *clientSocket;
     QThread *serverSocket;

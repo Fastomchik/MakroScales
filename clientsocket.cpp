@@ -79,12 +79,10 @@ void ClientSocket::onConnected()
     }
 }
 
-void ClientSocket::receiveCommandPrinter()
+/*void ClientSocket::receiveCommandPrinter()
 {
 
-}
-
-
+}*/
 
 void ClientSocket::handleAnswer()
 {

@@ -16,7 +16,7 @@ public slots:
     void doWork();
     void setConnectionParams(const QString &ip, const QString &port);
     void disconnectSocket();
-    void receiveCommandPrinter(const QString &command, const Constants::TypeCommandDocod commandType);
+    // void receiveCommandPrinter(const QString &command, const Constants::TypeCommandDocod commandType);
 
 private slots:
     void onConnected();

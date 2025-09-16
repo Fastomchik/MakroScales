@@ -1,8 +1,17 @@
 #include "settingspage.h"
 #include <QFormLayout>
+#include <QMessageBox>
+#include <QSettings>
+#include <QDebug>
 #include <QSpinBox>
 
 SettingsPage::SettingsPage(QWidget *parent) : QWidget(parent)
+{
+    setupUI();
+}
+
+
+void SettingsPage::setupUI()
 {
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(20);
@@ -43,8 +52,27 @@ SettingsPage::SettingsPage(QWidget *parent) : QWidget(parent)
     setSettings->setFixedHeight(50);
     formLayout->addRow(setSettings);
 
-
     mainLayout->addLayout(formLayout);
     mainLayout->addStretch();
+}
 
+void SettingsPage::onSaveButtonClicked()
+{
+    QString serverIp = serverIpEdit->text();
+    int serverPort = serverPortEdit->value();
+    QString client_Ip = clientIpEdit->text();
+    int clientPort = clientPortEdit->value();
+
+    if (serverIp.isEmpty() || client_Ip.isEmpty()) {
+        QMessageBox::warning(this, "Ошибка", "Пожалуйста, заполните");
+        return;
+        }
+
+    QSettings settings("Makro", "MakroScales");
+    settings.setValue("server/ip", serverIp);
+    settings.setValue("server/port", serverPort);
+    settings.setValue("client/ip", client_Ip);
+    settings.setValue("client/port", clientPort);
+
+    settings.sync();
 }

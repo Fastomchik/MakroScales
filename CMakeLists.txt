@@ -39,7 +39,8 @@ set(PROJECT_SOURCES
 
 # Создаем исполняемый файл
 add_executable(MakroScales ${PROJECT_SOURCES}
-    Icon.qrc)
+    Icon.qrc
+    bridgelinxtocab.h bridgelinxtocab.cpp)
 
 # Добавляем переводы правильно
 qt6_add_translation(QM_FILES ${TS_FILES})
