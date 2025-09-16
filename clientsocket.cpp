@@ -62,6 +62,7 @@ void ClientSocket::disconnectSocket()
     }
 }
 
+
 void ClientSocket::onErrorOccurred()
 {
     isConnected = false;
@@ -79,10 +80,15 @@ void ClientSocket::onConnected()
     }
 }
 
-/*void ClientSocket::receiveCommandPrinter()
+void ClientSocket::sendCommandPrinter()
 {
 
-}*/
+}
+
+void ClientSocket::receiveLastWeight()
+{
+
+}
 
 void ClientSocket::handleAnswer()
 {

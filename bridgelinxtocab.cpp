@@ -1,5 +1,5 @@
 #include "bridgelinxtocab.h"
-
+#include <QQueue>
 
 
 BridgeLinxtoCab::BridgeLinxtoCab(QObject *parent) : QObject(parent)

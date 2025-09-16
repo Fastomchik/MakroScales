@@ -1,21 +1,33 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "constants.h"
 #include <QMainWindow>
 #include <QThread>
 #include <QAction>
 #include <QStackedWidget>
+
+// Предварительные объявления вместо включения constants.h
+class HomePage;
+class SettingsPage;
+class CountersPage;
+class LogsPage;
+class Constants;
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    // Изменяем конструктор - передаем страницы напрямую
+    MainWindow(HomePage *homePage,
+               SettingsPage *settingsPage,
+               CountersPage *countersPage,
+               LogsPage *logsPage,
+               QWidget *parent = nullptr);
     ~MainWindow();
 
 private slots:
+    void changeStatusModes(bool checked);
     void showHome();
     void showSettings();
     void showCounters();
@@ -32,13 +44,14 @@ private:
     QAction *actionLogs;
 
     QStackedWidget *stackedWidget;
-    Constants *constants;
 
-    QThread *clientSocket;
-    QThread *serverSocket;
+    // Указатели на страницы (теперь они передаются извне)
+    HomePage *m_homePage;
+    SettingsPage *m_settingsPage;
+    CountersPage *m_countersPage;
+    LogsPage *m_logsPage;
 
 signals:
-    void changeStatusModes(bool checked);
 };
 
 #endif // MAINWINDOW_H

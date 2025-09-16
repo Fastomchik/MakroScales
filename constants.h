@@ -6,14 +6,8 @@ class ClientSocket;
 class Server;
 
 
-#include "homepage.h"
-#include "settingspage.h"
-#include "counterspage.h"
-#include "logspage.h"
 #include <QObject>
-#include <QQueue>
-#include <QMutex>
-#include <QThread>
+#include <QMap>
 
 
 extern QQueue<QByteArray> printQueue;
@@ -25,11 +19,6 @@ class Constants : public QObject
 public:
     explicit Constants(QObject *parent = nullptr);
     ~Constants();
-
-    HomePage *homePage;
-    SettingsPage *settingsPage;
-    CountersPage *countersPage;
-    LogsPage *logsPage;
 
 
 //-----------------------------Общие ENUM--------------------------------------------------
@@ -222,18 +211,6 @@ public:
     };
     Q_ENUM(TypeCommandCab)
 
-
-    // Обьекты
-    BridgeLinxtoCab *bridgeWorkerCab;
-    ClientSocket *printerWorker;
-    Server *serverWorker;
-
-    //Потоки
-    QThread* printerThread;
-    QThread* serverThread;
-
-
-
     // Константы
     static inline uint batchCount = 0; // Количество продуктов в текущей сессии
     static inline uint totalCount = 0; // Общее количество продуктов
@@ -249,14 +226,6 @@ public:
     static inline PrinterType currentPrinter = PrinterType::Unknown;
     static inline CabState currentStatusCab = CabState::Stop;
     static inline LinxState currentStatusMakroline = LinxState::Shutdown;
-
-private:
-    void initializeThread();
-    void initializeSettings();
-    void initializePages();
-    void initializeSignal();
-
-
 };
 
 #endif // CONSTANTS_H

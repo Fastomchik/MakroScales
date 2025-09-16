@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QString>
 #include <QTcpSocket>
+#include <QList>
 
 
 class ClientSocket : public QObject
@@ -16,7 +17,8 @@ public slots:
     void doWork();
     void setConnectionParams(const QString &ip, const QString &port);
     void disconnectSocket();
-    // void receiveCommandPrinter(const QString &command, const Constants::TypeCommandDocod commandType);
+    void sendCommandPrinter();
+    void receiveLastWeight();
 
 private slots:
     void onConnected();
@@ -31,6 +33,7 @@ private:
     QTcpSocket* socket;
     QString printer_ip;
     QString printer_port;
+    QList<QString> listWeight;
 
     // Вспомогательные методы
     void handleAnswer();

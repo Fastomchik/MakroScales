@@ -1,17 +1,32 @@
 #include "mainwindow.h"
+#include "homepage.h"
+#include "settingspage.h"
+#include "counterspage.h"
+#include "logspage.h"
+#include "constants.h" // Теперь только для enum, если нужно
 #include <QMenuBar>
 #include <QIcon>
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
+MainWindow::MainWindow(HomePage *homePage,
+                       SettingsPage *settingsPage,
+                       CountersPage *countersPage,
+                       LogsPage *logsPage,
+                       QWidget *parent)
+    : QMainWindow(parent),
+    m_homePage(homePage),
+    m_settingsPage(settingsPage),
+    m_countersPage(countersPage),
+    m_logsPage(logsPage)
 {
-
     stackedWidget = new QStackedWidget(this);
     setCentralWidget(stackedWidget);
 
     this->setWindowIcon(QIcon(":/image/MakroScales.png"));
     this->setWindowTitle("MakroScales");
 
-    constants = new Constants(this);
+    // Убираем создание constants, так как он больше не управляет страницами
+    // constants = new Constants(this); // УДАЛИТЬ
+
     setupPages();
     createActions();
     createMenus();
@@ -20,16 +35,16 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
 MainWindow::~MainWindow()
 {
+    // Не удаляем страницы, так как ими управляет AppController
 }
 
 void MainWindow::setupPages()
 {
-
     // Добавляем страницы в stacked widget
-    stackedWidget->addWidget(constants->homePage);
-    stackedWidget->addWidget(constants->settingsPage);
-    stackedWidget->addWidget(constants->countersPage);
-    stackedWidget->addWidget(constants->logsPage);
+    if (m_homePage) stackedWidget->addWidget(m_homePage);
+    if (m_settingsPage) stackedWidget->addWidget(m_settingsPage);
+    if (m_countersPage) stackedWidget->addWidget(m_countersPage);
+    if (m_logsPage) stackedWidget->addWidget(m_logsPage);
 }
 
 void MainWindow::createActions()
@@ -75,8 +90,9 @@ void MainWindow::showLogs()
     stackedWidget->setCurrentIndex(3);
 }
 
-
-void changeStatusModes(bool checked)
+// Эта функция должна быть методом класса
+void MainWindow::changeStatusModes(bool checked)
 {
-
+    // Реализация функции
+    Q_UNUSED(checked);
 }
