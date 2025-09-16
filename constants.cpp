@@ -3,6 +3,7 @@
 #include "clientsocket.h"
 #include "serversocket.h"
 
+
 #include <QDebug>
 
 QQueue<QByteArray> printQueue;       // Теперь переменная существует в памяти
@@ -62,6 +63,9 @@ void Constants::initializeSignal()
     connect(printerWorker, &ClientSocket::logMessage, logsPage, &LogsPage::addLogMessage);
     connect(serverWorker, &Server::logMessage, logsPage, &LogsPage::addLogMessage);
     connect(bridgeWorkerCab, &BridgeLinxtoCab::logMessage, logsPage, &LogsPage::addLogMessage);
+
+    // Сигналы из homepage
+    //connect(homePage, &HomePage::)
 }
 
 void Constants::initializePages()

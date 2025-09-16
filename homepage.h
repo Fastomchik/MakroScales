@@ -1,6 +1,5 @@
 #ifndef HOMEPAGE_H
 #define HOMEPAGE_H
-
 #include <QWidget>
 #include <QPushButton>
 #include <QLabel>
@@ -15,7 +14,13 @@ public:
     void setServerStatus(bool connected);
     void setClientStatus(bool connected);
     void resetStatus();
-
+public slots:
+    void on_btn_start_server_clicked();
+    void on_btn_connect_client_clicked();
+signals:
+    void startServerRequested();
+    void stopServerRequested();
+    void startClientRequested();
 private:
     void setupUI();
     void updateStatusDisplays();

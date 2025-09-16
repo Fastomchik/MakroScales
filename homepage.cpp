@@ -114,3 +114,13 @@ void HomePage::resetStatus()
     clientConnected = false;
     updateStatusDisplays();
 }
+
+void HomePage::on_btn_start_server_clicked()
+{
+
+}
+
+void HomePage::on_btn_connect_client_clicked()
+{
+
+}
