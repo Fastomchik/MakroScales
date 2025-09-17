@@ -140,6 +140,9 @@ void AppController::initializeConnections()
     connect(m_bridgeWorkerCab, &BridgeLinxtoCab::responseToMakroline, m_serverWorker, &Server::ResponseMakroline,
             Qt::QueuedConnection);
 
+    // Сигнал об отпечатке
+    connect(m_printerWorker, &ClientSocket::successfulPrintedInMakroline, m_serverWorker, &Server::ResponseMakroline);
+
 }
 
 void AppController::loadSettings()

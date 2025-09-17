@@ -28,6 +28,7 @@ private slots:
 signals:
     void connectionChanged(bool checked);
     void logMessage(const QString& message);
+    void successfulPrintedInMakroline(const QByteArray &response);
 
 private:
     bool isConnected;

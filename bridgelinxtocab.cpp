@@ -139,7 +139,7 @@ QByteArray BridgeLinxtoCab::transformLinxToCab(const QString &linxCommand)
 
 void BridgeLinxtoCab::setWeightFromPLC(const QByteArray &data)
 {
-    if (data.isEmpty() || pendingCabCommand.isEmpty()) return;
+    if (data.isEmpty() || pendingCabQueue.isEmpty()) return;
 
     QString weightStr = QString::fromUtf8(data).trimmed();
     lastWeight = weightStr;
@@ -147,21 +147,19 @@ void BridgeLinxtoCab::setWeightFromPLC(const QByteArray &data)
 
     emit logMessage("[System] Получен вес от PLC: " + weightStr);
 
+    // Отправляем все команды из очереди, вставляя вес
     // Вставляем вес в CAB-команду перед отправкой
-    QByteArray commandToSend = pendingCabCommand;
-    QString cmdStr = QString::fromUtf8(commandToSend);
+    QString cmdStr = QString::fromUtf8(pendingCabCommand);
     cmdStr.replace("R weight;0", "R weight;" + weightStr); // заменяем заглушку
-    commandToSend = cmdStr.toUtf8();
 
+    QByteArray commandToSend = cmdStr.toUtf8();
+    qDebug() << "CommandtoSend" <<commandToSend;
     // Отправляем команду в принтер
     emit commandToPrinter(commandToSend, Constants::TypeCommandCab::AddCode);
     emit logMessage("[System] Отправлена команда на печать с весом: " + weightStr);
 
     // Очищаем отложенную команду
     pendingCabCommand.clear();
-
-    // Можно дать ACK обратно Makroline
-    emit responseToMakroline("ACK");
 }
 
 // ========================================================
@@ -182,10 +180,12 @@ void BridgeLinxtoCab::handleAddToBuffer(const QStringList &parts)
     makrolineQueue.enqueue(rawCommand);
     emit logMessage("[System] Добавлено кодов: 1, всего в очереди: " + QString::number(makrolineQueue.size()));
 
-    // Генерируем команду CAB, но пока не отправляем
-    pendingCabCommand = transformLinxToCab(rawCommand);
+    // Генерируем команду CAB и кладем в очередь отложенных команд
+    QByteArray cabCommand = transformLinxToCab(rawCommand);
+    pendingCabQueue.enqueue(cabCommand);
 
-    emit logMessage("[System] Команда CAB сохранена и ждёт вес");
+    emit logMessage("[System] Команда CAB добавлена в очередь и ждёт вес");
+    emit responseToMakroline("ACK");
 }
 
 void BridgeLinxtoCab::handlePrinterState(Constants::CabState)
@@ -228,11 +228,11 @@ void BridgeLinxtoCab::handleSelectJob(const QStringList &parts)
 void BridgeLinxtoCab::handleRequestState()
 {
     QByteArray response = QString("STS|%1|0|DemoJob|%2|%3|")
-    .arg(static_cast<int>(Constants::currentStatusMakroline))
+    .arg(static_cast<int>(3))
         .arg(Constants::batchCount)
         .arg(Constants::totalCount)
         .toUtf8();
-    emit responseToMakroline(response);
+    emit responseToMakroline("STS|3|0|DemoJob|0|0|");
 }
 
 void BridgeLinxtoCab::handleRequestQueueSize()

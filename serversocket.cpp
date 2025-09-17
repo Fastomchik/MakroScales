@@ -174,21 +174,28 @@ void Server::onReadyRead()
 
 }
 
-void Server::ResponseMakroline(const QByteArray &response)
+void Server::ResponseMakroline(const QString &data_response)
 {
     if (!makrolineSocket || makrolineSocket->state() != QTcpSocket::ConnectedState) {
-        emit logMessage("[Server] Нет подключения к ПО Makroline для отправки ответа");
+        emit logMessage("[MakrolineWorker] Сокет не подключен");
         return;
     }
 
-    makrolineSocket->write(response);
+    QByteArray sendData;
+    QDataStream stream(&sendData, QIODevice::WriteOnly);
+    stream.setByteOrder(QDataStream::LittleEndian);
 
-    QString hex;
-    for (char byte : response) {
-        hex += QString("%1 ").arg((quint8)byte, 2, 16, QLatin1Char('0')).toUpper();
-    }
+    stream.writeRawData(reinterpret_cast<const char*>(data_response.utf16()), data_response.size() * 2);
 
-    emit logMessage(QString("[Server] Отправлено ПО Makroline: HEX %1").arg(hex.trimmed()));
+    const char16_t cr = 0x000D;
+    stream.writeRawData(reinterpret_cast<const char*>(&cr), 2);
+
+    QString hexStr = sendData.toHex(' ').toUpper();
+    QString textStr = QString::fromUtf16(reinterpret_cast<const char16_t*>(sendData.constData()), (sendData.size() - 2) / 2);
+    emit logMessage(QString("[MakrolineWorker] Ответ на команду: %1 (HEX: %2)").arg(textStr.trimmed(), hexStr));
+
+    queueOut.append(sendData);
+    if (!isProcessingOut) processNextOut();
 }
 
 void Server::ResponsePLC(const QByteArray &data)
@@ -256,20 +263,14 @@ void Server::processNext()
 
 void Server::processNextOut()
 {
-    if (queueOut.isEmpty()) {
+    if (!makrolineSocket || makrolineSocket->state() != QTcpSocket::ConnectedState || queueOut.isEmpty()) {
         isProcessingOut = false;
         return;
     }
 
     isProcessingOut = true;
     QByteArray data = queueOut.takeFirst();
-
-    // Определяем кому отправлять данные
-    if (isMakrolineData(data) && makrolineSocket && makrolineSocket->state() == QTcpSocket::ConnectedState) {
-        makrolineSocket->write(data);
-    } else if (isPlcData(data) && plcSocket && plcSocket->state() == QTcpSocket::ConnectedState) {
-        plcSocket->write(data);
-    }
+    makrolineSocket->write(data);
 }
 
 void Server::onBytesWritten(qint64)

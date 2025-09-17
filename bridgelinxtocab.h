@@ -65,7 +65,8 @@ private:
     QTimer* m_updateTimer;
     QWaitCondition m_queueCondition;
     QMutex m_queueMutex;
-    QByteArray pendingCabCommand; // Отложенная команда, ждет вес
+    QByteArray pendingCabCommand;
+    QQueue<QByteArray> pendingCabQueue;    // Отложенная команда, ждет вес
     QString lastWeight;
     QQueue<QString> makrolineQueue;
 };

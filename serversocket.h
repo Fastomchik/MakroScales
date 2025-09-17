@@ -20,7 +20,7 @@ signals:
     void plcDataReceived(const QByteArray &data);    // Данные от ПЛК
 
 public slots:
-    void ResponseMakroline(const QByteArray &response);
+    void ResponseMakroline(const QString &response);
     void ResponsePLC(const QByteArray &data);
     void startServer();
     void setConnectionParams(const QString &ip, const QString &port); // Для ПО Makroline

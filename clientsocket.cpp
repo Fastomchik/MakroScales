@@ -100,6 +100,26 @@ void ClientSocket::sendCommandPrinter(const QByteArray &command, const Constants
 
 void ClientSocket::fillPrinterBuffer()
 {
+    qDebug() << "вызов fillPrinterBuffer";
+    if (!isConnected) {
+        emit logMessage("[Client] Сокет не подключен, не могу отправить в принтер");
+        return;
+    }
+
+    while (!printQueue.isEmpty()) {
+        QByteArray command = printQueue.dequeue();
+
+        qint64 written = socket->write(command);
+        if (written == -1) {
+            emit logMessage("[Client] Ошибка отправки команды в принтер");
+        } else {
+            emit logMessage("[Client] Команда отправлена в принтер: " + QString::fromUtf8(command));
+        }
+
+        socket->flush(); // сразу отправляем в сокет
+
+        emit successfulPrintedInMakroline("PRC");
+    }
 
 }
 
