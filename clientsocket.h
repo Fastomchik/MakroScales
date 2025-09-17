@@ -12,6 +12,7 @@ class ClientSocket : public QObject
     Q_OBJECT
 public:
     explicit ClientSocket(QObject *parent = nullptr);
+    ~ClientSocket();
 
 public slots:
     void doWork();

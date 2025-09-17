@@ -18,7 +18,6 @@ Server::Server(QObject* parent)
 
 Server::~Server()
 {
-    disconnectServer();
 }
 
 void Server::setConnectionParams(const QString &ip, const QString &port)
@@ -33,20 +32,21 @@ void Server::setConnectionParams(const QString &ip, const QString &port)
 void Server::startServer()
 {
     qDebug() << "Запуск серверов в потоке:" << QThread::currentThread();
+    Q_ASSERT(QThread::currentThread() == this->thread());
 
     // Останавливаем серверы если они уже запущены
     disconnectServer();
 
     // Создаем сервер для ПО Makroline
     if (!makrolineServer) {
-        makrolineServer = new QTcpServer(this);
-        connect(makrolineServer, &QTcpServer::newConnection, this, &Server::onNewMakrolineConnection);
+        makrolineServer = new QTcpServer();
+        connect(makrolineServer, &QTcpServer::newConnection, this, &Server::onNewMakrolineConnection, Qt::DirectConnection);
     }
 
     // Создаем сервер для ПЛК (статический порт 8090)
     if (!plcServer) {
-        plcServer = new QTcpServer(this);
-        connect(plcServer, &QTcpServer::newConnection, this, &Server::onNewPlcConnection);
+        plcServer = new QTcpServer();
+        connect(plcServer, &QTcpServer::newConnection, this, &Server::onNewPlcConnection, Qt::DirectConnection);
     }
 
     // Запускаем сервер для ПО Makroline
@@ -87,9 +87,9 @@ void Server::onNewMakrolineConnection()
 
     emit logMessage(QString("[Server] Подключено ПО Makroline: %1").arg(clientInfo));
 
-    connect(makrolineSocket, &QTcpSocket::readyRead, this, &Server::onReadyRead);
-    connect(makrolineSocket, &QTcpSocket::disconnected, this, &Server::onDisconnected);
-    connect(makrolineSocket, &QTcpSocket::bytesWritten, this, &Server::onBytesWritten);
+    connect(makrolineSocket, &QTcpSocket::readyRead, this, &Server::onReadyRead, Qt::DirectConnection);
+    connect(makrolineSocket, &QTcpSocket::disconnected, this, &Server::onDisconnected, Qt::DirectConnection);
+    connect(makrolineSocket, &QTcpSocket::bytesWritten, this, &Server::onBytesWritten, Qt::DirectConnection);
 
     emit connectionChanged(true);
 }
@@ -110,9 +110,9 @@ void Server::onNewPlcConnection()
 
     emit logMessage(QString("[Server] Подключен ПЛК: %1").arg(clientInfo));
 
-    connect(plcSocket, &QTcpSocket::readyRead, this, &Server::onReadyRead);
-    connect(plcSocket, &QTcpSocket::disconnected, this, &Server::onDisconnected);
-    connect(plcSocket, &QTcpSocket::bytesWritten, this, &Server::onBytesWritten);
+    connect(plcSocket, &QTcpSocket::readyRead, this, &Server::onReadyRead, Qt::DirectConnection);
+    connect(plcSocket, &QTcpSocket::disconnected, this, &Server::onDisconnected, Qt::DirectConnection);
+    connect(plcSocket, &QTcpSocket::bytesWritten, this, &Server::onBytesWritten, Qt::DirectConnection);
 
     emit connectionChanged(true);
 }
@@ -196,23 +196,6 @@ void Server::ResponseMakroline(const QString &data_response)
 
     queueOut.append(sendData);
     if (!isProcessingOut) processNextOut();
-}
-
-void Server::ResponsePLC(const QByteArray &data)
-{
-    if (!plcSocket || plcSocket->state() != QTcpSocket::ConnectedState) {
-        emit logMessage("[Server] Нет подключения к ПЛК для отправки ответа");
-        return;
-    }
-
-    plcSocket->write(data);
-
-    QString hex;
-    for (char byte : data) {
-        hex += QString("%1 ").arg((quint8)byte, 2, 16, QLatin1Char('0')).toUpper();
-    }
-
-    emit logMessage(QString("[Server] Отправлено ПЛК: HEX %1").arg(hex.trimmed()));
 }
 
 void Server::disconnectServer()

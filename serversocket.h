@@ -21,9 +21,9 @@ signals:
 
 public slots:
     void ResponseMakroline(const QString &response);
-    void ResponsePLC(const QByteArray &data);
     void startServer();
     void setConnectionParams(const QString &ip, const QString &port); // Для ПО Makroline
+    void disconnectServer();
 
 private slots:
     void onNewMakrolineConnection();
@@ -33,7 +33,6 @@ private slots:
     void onBytesWritten(qint64 bytes);
 
 private:
-    void disconnectServer();
     void processNext();
     void processNextOut();
     bool isMakrolineData(const QByteArray &data);

@@ -27,6 +27,11 @@ CounterWidget::CounterWidget(const QString &title, QWidget *parent)
     setFixedSize(200, 120);
 }
 
+CounterWidget::~CounterWidget()
+{
+
+}
+
 void CounterWidget::setValue(int value, const QString &unit) {
     if (unit.isEmpty()) {
         valueLabel->setText(QString::number(value));
@@ -111,3 +116,4 @@ void CountersPage::updateDisplay()
     totalCountСounter->setValue(totalCount, "шт");
     countPrintedCounter->setValue(countPrinted, "шт");
 }
+

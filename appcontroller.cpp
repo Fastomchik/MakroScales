@@ -37,6 +37,11 @@ AppController::~AppController()
         m_serverThread->wait();
     }
 
+    if (m_bridgeThread && m_bridgeThread->isRunning()){
+        m_bridgeThread->quit();
+        m_bridgeThread->wait();
+    }
+
     // Удаляем объекты
     delete m_bridgeWorkerCab;
     delete m_printerWorker;
@@ -47,6 +52,7 @@ AppController::~AppController()
     delete m_logsPage;
     delete m_printerThread;
     delete m_serverThread;
+    delete m_bridgeThread;
 }
 
 void AppController::initialize()
@@ -59,11 +65,11 @@ void AppController::initialize()
     m_printerWorker = new ClientSocket();
     m_serverWorker = new Server();
 
-    // 4. Применяем настройки к объектам (они еще в главном потоке)
-    applySettings();
-
-    // 5. Создаем потоки и перемещаем объекты
+    // 4. Создаем потоки и перемещаем объекты
     initializeThreads();
+
+    // 5. Применяем настройки к объектам (они уже в своих потоках)
+    applySettings();
 
     // 6. Подключаем сигналы
     initializeConnections();
@@ -74,25 +80,31 @@ void AppController::initializeThreads()
     // Создаем потоки
     m_serverThread = new QThread(this);
     m_printerThread = new QThread(this);
-
-    qDebug() << "Созданы рабочие объекты:";
-    qDebug() << "  BridgeLinxtoCab thread:" << m_bridgeWorkerCab->thread();
-    qDebug() << "  ClientSocket thread:" << m_printerWorker->thread();
-    qDebug() << "  Server thread:" << m_serverWorker->thread();
+    m_bridgeThread = new QThread(this);
 
     // Перемещаем объекты в потоки
     m_serverWorker->moveToThread(m_serverThread);
     m_printerWorker->moveToThread(m_printerThread);
-
-    qDebug() << "После перемещения в потоки:";
-    qDebug() << "  BridgeLinxtoCab thread:" << m_bridgeWorkerCab->thread();
-    qDebug() << "  ClientSocket thread:" << m_printerWorker->thread();
-    qDebug() << "  Server thread:" << m_serverWorker->thread();
+    m_bridgeWorkerCab->moveToThread(m_bridgeThread);
 
     // Запускаем потоки
     m_serverThread->start();
     m_printerThread->start();
+    m_bridgeThread->start();
 
+    qDebug() << "После перемещения:";
+
+    qDebug() << "Server worker thread:" << m_serverWorker->thread();
+    qDebug() << "Server thread:" << m_serverThread;
+    qDebug() << "Equal:" << (m_serverWorker->thread() == m_serverThread);
+
+    qDebug() << "Printer worker thread:" << m_printerWorker->thread();
+    qDebug() << "Printer thread:" << m_printerThread;
+    qDebug() << "Equal:" << (m_printerWorker->thread() == m_printerThread);
+
+    qDebug() << "Bridge worker thread:" << m_bridgeWorkerCab->thread();
+    qDebug() << "Bridge thread:" << m_bridgeThread;
+    qDebug() << "Equal:" << (m_bridgeWorkerCab->thread() == m_bridgeThread);
     qDebug() << "Потоки запущены";
 }
 
@@ -109,11 +121,13 @@ void AppController::initializeConnections()
     // Подключение сигналов уничтожения объектов к остановке потоков
     connect(m_serverWorker, &QObject::destroyed, m_serverThread, &QThread::quit);
     connect(m_printerWorker, &QObject::destroyed, m_printerThread, &QThread::quit);
+    connect(m_bridgeWorkerCab, &QObject::destroyed, m_bridgeThread, &QThread::quit);
 
     // Сигналы логов
-    connect(m_printerWorker, &ClientSocket::logMessage, m_logsPage, &LogsPage::addLogMessage);
-    connect(m_serverWorker, &Server::logMessage, m_logsPage, &LogsPage::addLogMessage);
-    connect(m_bridgeWorkerCab, &BridgeLinxtoCab::logMessage, m_logsPage, &LogsPage::addLogMessage);
+    connect(m_printerWorker, &ClientSocket::logMessage, m_logsPage, &LogsPage::addLogMessage, Qt::QueuedConnection);
+    connect(m_serverWorker, &Server::logMessage, m_logsPage, &LogsPage::addLogMessage, Qt::QueuedConnection);
+    connect(m_bridgeWorkerCab, &BridgeLinxtoCab::logMessage, m_logsPage, &LogsPage::addLogMessage, Qt::QueuedConnection);
+
 
     // Сигналы получения данных от makroline и plc
     connect(m_serverWorker, &Server::commandReceived, m_bridgeWorkerCab, &BridgeLinxtoCab::processLinxCommand,
@@ -122,27 +136,24 @@ void AppController::initializeConnections()
             Qt::QueuedConnection);
 
     // Сигналы старта и стопа сервера, клиента
-    connect(m_homePage, &HomePage::startServerRequested, this, &AppController::startServer,
-            Qt::QueuedConnection);
-    connect(m_homePage, &HomePage::startClientRequested, this, &AppController::startClient,
-            Qt::QueuedConnection);
+    connect(m_homePage, &HomePage::startServerRequested, this, &AppController::startServer);
+    connect(m_homePage, &HomePage::startClientRequested, this, &AppController::startClient);
+    connect(m_homePage, &HomePage::stopServerRequested, this, &AppController::stopServer);
+    connect(m_homePage, &HomePage::stopClientRequested, this, &AppController::stopClient);
 
     // Сигналы обновления интерфейса при измении статуса
-    connect(m_serverWorker, &Server::connectionChanged, m_homePage, &HomePage::setServerStatus);
-    connect(m_printerWorker, &ClientSocket::connectionChanged, m_homePage, &HomePage::setClientStatus);
+    connect(m_serverWorker, &Server::connectionChanged, m_homePage, &HomePage::setServerStatus, Qt::QueuedConnection);
+    connect(m_printerWorker, &ClientSocket::connectionChanged, m_homePage, &HomePage::setClientStatus, Qt::QueuedConnection);
 
     // Добавляем подключение сигнала сохранения настроек
     connect(m_settingsPage, &SettingsPage::settingsSaved, this, &AppController::onSettingsSaved);
 
     // Сигналы из bridgelinxtocab
-    connect(m_bridgeWorkerCab, &BridgeLinxtoCab::commandToPrinter, m_printerWorker, &ClientSocket::sendCommandPrinter,
-            Qt::QueuedConnection);
-    connect(m_bridgeWorkerCab, &BridgeLinxtoCab::responseToMakroline, m_serverWorker, &Server::ResponseMakroline,
-            Qt::QueuedConnection);
+    connect(m_bridgeWorkerCab, &BridgeLinxtoCab::commandToPrinter, m_printerWorker, &ClientSocket::sendCommandPrinter, Qt::QueuedConnection);
+    connect(m_bridgeWorkerCab, &BridgeLinxtoCab::responseToMakroline, m_serverWorker, &Server::ResponseMakroline, Qt::QueuedConnection);
 
     // Сигнал об отпечатке
-    connect(m_printerWorker, &ClientSocket::successfulPrintedInMakroline, m_serverWorker, &Server::ResponseMakroline);
-
+    connect(m_printerWorker, &ClientSocket::successfulPrintedInMakroline, m_serverWorker, &Server::ResponseMakroline, Qt::QueuedConnection);
 }
 
 void AppController::loadSettings()
@@ -205,8 +216,10 @@ void AppController::stopServer()
     // Останавливаем сервер в его потоке
     QMetaObject::invokeMethod(m_serverWorker, "disconnectServer", Qt::QueuedConnection);
 
-    // Обновляем статус на домашней странице
-    m_homePage->setServerStatus(false);
+    // ОБНОВЛЯЕМ СТАТУС ЧЕРЕЗ СИГНАЛ, а не напрямую
+    // (если homePage в другом потоке)
+    QMetaObject::invokeMethod(m_homePage, "setServerStatus",
+                              Qt::QueuedConnection, Q_ARG(bool, false));
 }
 
 void AppController::startServer()
@@ -217,12 +230,13 @@ void AppController::startServer()
         m_serverThread->start();
         qDebug() << "Поток сервера запущен";
 
-        // Даем время потоку инициализироваться
-        QThread::msleep(100);
+        // АСИНХРОННАЯ задержка вместо блокирующего sleep
+        QTimer::singleShot(100, this, [this]() {
+            QMetaObject::invokeMethod(m_serverWorker, "startServer", Qt::QueuedConnection);
+        });
+    } else {
+        QMetaObject::invokeMethod(m_serverWorker, "startServer", Qt::QueuedConnection);
     }
-
-    // Запускаем сервер в его потоке
-    QMetaObject::invokeMethod(m_serverWorker, "startServer", Qt::QueuedConnection);
 }
 
 void AppController::startClient()
@@ -233,14 +247,17 @@ void AppController::startClient()
         m_printerThread->start();
         qDebug() << "Поток клиента запущен";
     }
-        QThread::msleep(100);
 
-    // Убеждаемся, что настройки применены перед подключением
-    if (m_printerWorker) {
-        m_printerWorker->setConnectionParams(m_clientIp, QString::number(m_clientPort));
-    }
-    // Запускаем клиента в его потоке
-    QMetaObject::invokeMethod(m_printerWorker, "connectToServer", Qt::QueuedConnection);
+    // ПЕРЕНЕСТИ setConnectionParams в поток клиента
+    QMetaObject::invokeMethod(m_printerWorker, "setConnectionParams",
+                              Qt::QueuedConnection,
+                              Q_ARG(QString, m_clientIp),
+                              Q_ARG(QString, QString::number(m_clientPort)));
+
+    // АСИНХРОННЫЙ запуск после задержки
+    QTimer::singleShot(100, this, [this]() {
+        QMetaObject::invokeMethod(m_printerWorker, "connectToServer", Qt::QueuedConnection);
+    });
 }
 
 void AppController::stopClient()
@@ -250,6 +267,7 @@ void AppController::stopClient()
     // Отключаем клиента в его потоке
     QMetaObject::invokeMethod(m_printerWorker, "disconnectFromServer", Qt::QueuedConnection);
 
-    // Обновляем статус на домашней странице
-    m_homePage->setClientStatus(false);
+    // ОБНОВЛЯЕМ СТАТУС ЧЕРЕЗ СИГНАЛ
+    QMetaObject::invokeMethod(m_homePage, "setClientStatus",
+                              Qt::QueuedConnection, Q_ARG(bool, false));
 }

@@ -50,8 +50,6 @@ private:
     SettingsPage *m_settingsPage;
     CountersPage *m_countersPage;
     LogsPage *m_logsPage;
-
-signals:
 };
 
 #endif // MAINWINDOW_H

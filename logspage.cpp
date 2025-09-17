@@ -8,6 +8,11 @@ LogsPage::LogsPage(QWidget *parent) : QWidget(parent)
     setupUI();
 }
 
+LogsPage::~LogsPage()
+{
+
+}
+
 
 void LogsPage::setupUI()
 {

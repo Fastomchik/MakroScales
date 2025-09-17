@@ -9,7 +9,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
 
 # Явно указываем необходимые компоненты Qt
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network SerialPort Concurrent LinguistTools)
@@ -55,7 +54,6 @@ target_link_libraries(MakroScales PRIVATE
     Qt6::Network
     Qt6::SerialPort
     Qt6::Concurrent
-    Threads::Threads
 )
 
 # Устанавливаем свойства для macOS

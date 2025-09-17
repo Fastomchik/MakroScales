@@ -6,6 +6,11 @@ BridgeLinxtoCab::BridgeLinxtoCab(QObject *parent) : QObject(parent)
     Constants::labelTemplate = settings.value("label/template").toString();
 }
 
+BridgeLinxtoCab::~BridgeLinxtoCab()
+{
+
+}
+
 // Основной метод обработки команд Linx
 void BridgeLinxtoCab::processLinxCommand(const QByteArray &raw)
 {

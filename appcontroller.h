@@ -60,6 +60,7 @@ private:
     // Потоки
     QThread* m_printerThread;
     QThread* m_serverThread;
+    QThread* m_bridgeThread;
 
 private slots:
     void onSettingsSaved();

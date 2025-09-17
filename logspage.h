@@ -10,6 +10,7 @@ class LogsPage : public QWidget
     Q_OBJECT
 public:
     explicit LogsPage(QWidget *parent = nullptr);
+    ~LogsPage();
 public slots:
     void addLogMessage(const QString &message);
 private:

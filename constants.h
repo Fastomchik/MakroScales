@@ -51,7 +51,7 @@ A 1
 
 код - партия - наименование продукции - дата производства - срок годности - вес
 короткие коды 01,21,93
-expiration_datetime=||production_datetime=||batch=||code=||name=
+SDH||expiration_datetime=||production_datetime=||batch=||code=||name=
 */
 
     enum class CodeField {

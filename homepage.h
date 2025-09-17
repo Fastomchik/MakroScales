@@ -9,14 +9,16 @@ class HomePage : public QWidget
     Q_OBJECT
 public:
     explicit HomePage(QWidget *parent = nullptr);
-
+    ~HomePage();
     // Методы для обновления статуса
+    void resetStatus();
     void setServerStatus(bool connected);
     void setClientStatus(bool connected);
-    void resetStatus();
 public slots:
     void on_btn_start_server_clicked();
     void on_btn_connect_client_clicked();
+    void on_btn_disconnect_server_clicked();
+    void on_btn_disconnect_client_clicked();
 signals:
     void startServerRequested();
     void startClientRequested();
@@ -30,7 +32,8 @@ private:
     // Кнопки
     QPushButton *btnStartServer;
     QPushButton *btnConnectClient;
-
+    QPushButton *btnDisconnectServer;
+    QPushButton *btnDisconnectClient;
     // Кружки статуса
     QLabel *serverStatusCircle;
     QLabel *clientStatusCircle;

@@ -1,6 +1,7 @@
 #include "clientsocket.h"
 #include <QDebug>
 #include <QQueue>
+#include <QThread>
 
 
 ClientSocket::ClientSocket(QObject *parent)
@@ -10,8 +11,16 @@ ClientSocket::ClientSocket(QObject *parent)
 {
 }
 
+ClientSocket::~ClientSocket()
+{
+
+}
+
 void ClientSocket::doWork()
 {
+    qDebug() << "Запуск клиента в потоке:" << QThread::currentThread();
+    Q_ASSERT(QThread::currentThread() == this->thread());
+    qDebug() << "Запуск серверов в потоке:" << QThread::currentThread();
     if (printer_ip.isEmpty() || printer_port.isEmpty())
     {
         emit logMessage("[Client] IP или порт не установлены!");
@@ -29,10 +38,12 @@ void ClientSocket::doWork()
         socket->deleteLater();
     }
 
-    socket = new QTcpSocket(this);
+    socket = new QTcpSocket();
 
-    connect(socket, &QTcpSocket::connected, this, &ClientSocket::onConnected);
-    connect(socket, &QTcpSocket::errorOccurred, this, &ClientSocket::onErrorOccurred);
+    connect(socket, &QTcpSocket::connected,
+            this, &ClientSocket::onConnected, Qt::DirectConnection);
+    connect(socket, &QTcpSocket::errorOccurred,
+            this, &ClientSocket::onErrorOccurred, Qt::DirectConnection);
     //connect(socket, &QTcpSocket::readyRead, this, &ClientSocket::handleAnswer);
 
 

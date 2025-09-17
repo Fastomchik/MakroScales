@@ -12,6 +12,10 @@ SettingsPage::SettingsPage(QWidget *parent) : QWidget(parent)
     setupUI();
     loadSettings(); // Загружаем настройки при создании
 }
+SettingsPage::~SettingsPage()
+{
+
+}
 
 void SettingsPage::setupUI()
 {

@@ -19,12 +19,13 @@ class BridgeLinxtoCab : public QObject
     Q_OBJECT
 public:
     explicit BridgeLinxtoCab(QObject *parent = nullptr);
+    ~BridgeLinxtoCab();
 
 signals:
     void commandToPrinter(const QByteArray &docodCommand, Constants::TypeCommandCab commandtype);
     void responseToMakroline(const QByteArray &response);
     void logMessage(const QString &message);
-    void updateSpinBox(Constants::SpinBoxType type, int value);
+    //void updateSpinBox(Constants::SpinBoxType type, int value);
 
 public slots:
     void manualPrint();

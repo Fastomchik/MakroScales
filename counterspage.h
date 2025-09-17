@@ -11,6 +11,7 @@ class CounterWidget : public QWidget
     Q_OBJECT
 public:
     explicit CounterWidget(const QString &title, QWidget *parent = nullptr);
+    ~CounterWidget();
     void setValue(int value, const QString &unit = "");
 
 private:

@@ -12,6 +12,7 @@ class SettingsPage : public QWidget
 
 public:
     explicit SettingsPage(QWidget *parent = nullptr);
+    ~SettingsPage();
 
     QString getServerIp() const;
     int getServerPort() const;

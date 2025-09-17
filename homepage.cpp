@@ -11,6 +11,11 @@ HomePage::HomePage(QWidget *parent) : QWidget(parent),
     setupUI();
 }
 
+HomePage::~HomePage()
+{
+
+}
+
 void HomePage::setupUI()
 {
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
@@ -29,11 +34,19 @@ void HomePage::setupUI()
     // Создаем кнопки
     btnStartServer = new QPushButton("Старт сервера");
     btnConnectClient = new QPushButton("Подключиться к клиенту");
+    btnDisconnectServer = new QPushButton("Стоп сервера");
+    btnDisconnectClient = new QPushButton("Отключиться от клиента");
     btnStartServer->setFixedSize(200, 50);
     btnConnectClient->setFixedSize(200, 50);
+    btnDisconnectServer->setFixedSize(200, 50);
+    btnDisconnectClient->setFixedSize(200, 50);
+
+
 
     connect(btnStartServer, &QPushButton::clicked, this, &HomePage::on_btn_start_server_clicked);
     connect(btnConnectClient, &QPushButton::clicked, this, &HomePage::on_btn_connect_client_clicked);
+    connect(btnDisconnectServer, &QPushButton::clicked, this, &HomePage::on_btn_disconnect_server_clicked);
+    connect(btnDisconnectClient, &QPushButton::clicked, this, &HomePage::on_btn_disconnect_client_clicked);
 
 
     // Создаем кружки статуса
@@ -49,19 +62,21 @@ void HomePage::setupUI()
     clientLabel = new QLabel("Клиент");
     serverLabel->setAlignment(Qt::AlignCenter);
     clientLabel->setAlignment(Qt::AlignCenter);
-    serverLabel->setStyleSheet("font-weight: bold;");
-    clientLabel->setStyleSheet("font-weight: bold;");
+    serverLabel->setStyleSheet("font: 600 14pt Segoe UI; font-weight: bold;");
+    clientLabel->setStyleSheet("font: 600 14pt Segoe UI; font-weight: bold;");
 
     // Обновляем отображение статуса
     updateStatusDisplays();
 
     // Добавляем виджеты в grid layout
-    gridLayout->addWidget(btnStartServer, 0, 0);
-    gridLayout->addWidget(btnConnectClient, 0, 1);
-    gridLayout->addWidget(serverStatusCircle, 1, 0, Qt::AlignCenter);
-    gridLayout->addWidget(clientStatusCircle, 1, 1, Qt::AlignCenter);
-    gridLayout->addWidget(serverLabel, 2, 0);
-    gridLayout->addWidget(clientLabel, 2, 1);
+    gridLayout->addWidget(serverLabel, 0, 0);
+    gridLayout->addWidget(clientLabel, 0, 1);
+    gridLayout->addWidget(btnStartServer, 1, 0);
+    gridLayout->addWidget(btnConnectClient, 1, 1);
+    gridLayout->addWidget(serverStatusCircle, 2, 0, Qt::AlignCenter);
+    gridLayout->addWidget(clientStatusCircle, 2, 1, Qt::AlignCenter);
+    gridLayout->addWidget(btnDisconnectServer, 3, 0);
+    gridLayout->addWidget(btnDisconnectClient, 3, 1);
 
     mainLayout->addLayout(gridLayout);
     mainLayout->addStretch();
@@ -149,4 +164,16 @@ void HomePage::on_btn_connect_client_clicked()
 {
     qDebug() << "Кнопка подключения клиента нажата";
     emit startClientRequested();
+}
+
+void HomePage::on_btn_disconnect_server_clicked()
+{
+    qDebug() << "Кнопка отключения сервера нажата";
+    emit stopServerRequested();
+}
+
+void HomePage::on_btn_disconnect_client_clicked()
+{
+    qDebug() << "Кнопка отключения клиента нажата";
+    emit stopClientRequested();
 }
