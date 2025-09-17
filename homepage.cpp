@@ -32,6 +32,10 @@ void HomePage::setupUI()
     btnStartServer->setFixedSize(200, 50);
     btnConnectClient->setFixedSize(200, 50);
 
+    connect(btnStartServer, &QPushButton::clicked, this, &HomePage::on_btn_start_server_clicked);
+    connect(btnConnectClient, &QPushButton::clicked, this, &HomePage::on_btn_connect_client_clicked);
+
+
     // Создаем кружки статуса
     serverStatusCircle = new QLabel();
     clientStatusCircle = new QLabel();
@@ -96,6 +100,26 @@ void HomePage::updateStatusDisplays()
     }
 }
 
+void HomePage::updateButtonTexts()
+{
+    // Обновляем текст кнопок в зависимости от состояния
+    if (serverRunning) {
+        btnStartServer->setText("Остановить сервер");
+        btnStartServer->setStyleSheet("QPushButton { background-color: #e74c3c; color: white; }");
+    } else {
+        btnStartServer->setText("Старт сервера");
+        btnStartServer->setStyleSheet("QPushButton { background-color: #2ecc71; color: white; }");
+    }
+
+    if (clientRunning) {
+        btnConnectClient->setText("Отключиться от клиента");
+        btnConnectClient->setStyleSheet("QPushButton { background-color: #e74c3c; color: white; }");
+    } else {
+        btnConnectClient->setText("Подключиться к клиенту");
+        btnConnectClient->setStyleSheet("QPushButton { background-color: #3498db; color: white; }");
+    }
+}
+
 void HomePage::setServerStatus(bool connected)
 {
     serverConnected = connected;
@@ -117,10 +141,12 @@ void HomePage::resetStatus()
 
 void HomePage::on_btn_start_server_clicked()
 {
-
+    qDebug() << "Кнопка старта сервера нажата";
+    emit startServerRequested();
 }
 
 void HomePage::on_btn_connect_client_clicked()
 {
-
+    qDebug() << "Кнопка подключения клиента нажата";
+    emit startClientRequested();
 }

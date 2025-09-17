@@ -38,7 +38,13 @@ private:
     void initializeThreads();
     void initializePages();
     void initializeConnections();
-    void initializeSettings();
+    void loadSettings();
+    void applySettings();
+
+    QString m_serverIp;
+    int m_serverPort;
+    QString m_clientIp;
+    int m_clientPort;
 
     // Объекты
     BridgeLinxtoCab *m_bridgeWorkerCab;
@@ -56,9 +62,11 @@ private:
     QThread* m_serverThread;
 
 private slots:
+    void onSettingsSaved();
     void stopServer();
     void startServer();
     void startClient();
+    void stopClient();
 };
 
 #endif // APPCONTROLLER_H

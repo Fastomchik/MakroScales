@@ -20,6 +20,8 @@ public slots:
     void doWork();
     void disconnectServer();
     void setConnectionParams(const QString &ip, const QString &port);
+    void startServer();
+    void stopServer();
     void ResponseMakroline(const QString &data_response);
     void ResponsePLC(const QByteArray &data); // Добавим параметр
 
@@ -27,7 +29,7 @@ signals:
     void connectionChanged(bool connected);
     void logMessage(const QString &message);
     void commandReceived(const QByteArray &command);
-    void plcDataReceived(const QByteArray &data); // Новый сигнал для данных от ПЛК
+    void plcDataReceived(const QString &data); // Новый сигнал для данных от ПЛК
 
 private slots:
     void onNewConnection();
@@ -43,6 +45,8 @@ private:
     QTcpSocket *plcSocket;       // Сокет для ПЛК
     QString server_ip;
     QString server_port;
+    QString plc_ip;
+    QString plc_port;
     QList<QByteArray> queue;
     QList<QByteArray> queueOut;
     bool isPrinting;

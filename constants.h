@@ -41,6 +41,15 @@ public:
     };
 
 /*
+ * R st_group_barcode;35469813
+R code;[U:FNC1]0104680127510079210000000000[U:GS]93test
+R st_txt_rus1;Пивной набор
+R st_txt_rus2;Узоры России
+R production_datatime;01.09.2025
+R expiration_datetime;01.01.2026
+R weight;125,2
+A 1
+
 код - партия - наименование продукции - дата производства - срок годности - вес
 короткие коды 01,21,93
 */

@@ -1,5 +1,6 @@
 #include "clientsocket.h"
 #include <QDebug>
+#include <QQueue>
 
 
 ClientSocket::ClientSocket(QObject *parent)
@@ -38,16 +39,15 @@ void ClientSocket::doWork()
     emit logMessage(QString("[Client] Подключаемся к %1, %2")
                         .arg(printer_ip).arg(printer_port));
     socket->connectToHost(printer_ip, port);
-
-
 }
 
-void ClientSocket::setConnectionParams(const QString &ip, const QString &port)
+void ClientSocket::onConnected()
 {
-    if (printer_ip == ip && printer_port == port) return;
-    printer_ip = ip;
-    printer_port = port;
-    emit logMessage(QString("[Client] Параметры подключения установлены ip: %1 port: %2").arg(ip, port));
+    if (socket->state() == QTcpSocket::ConnectedState){
+        isConnected = true;
+        emit logMessage("[Client] Успешно подключено к принтеру!");
+        emit connectionChanged(true);
+    }
 }
 
 void ClientSocket::disconnectSocket()
@@ -62,7 +62,6 @@ void ClientSocket::disconnectSocket()
     }
 }
 
-
 void ClientSocket::onErrorOccurred()
 {
     isConnected = false;
@@ -71,26 +70,84 @@ void ClientSocket::onErrorOccurred()
     emit connectionChanged(false);
 }
 
-void ClientSocket::onConnected()
-{
-    if (socket->state() == QTcpSocket::ConnectedState){
-        isConnected = true;
-        emit logMessage("[Client] Успешно подключено к принтеру!");
-        emit connectionChanged(true);
-    }
-}
-
-void ClientSocket::sendCommandPrinter()
-{
-
-}
-
-void ClientSocket::receiveLastWeight()
-{
-
-}
-
 void ClientSocket::handleAnswer()
 {
 
+}
+
+// Слот получения команды от bridgelinxtocab
+void ClientSocket::sendCommandPrinter(const QByteArray &command, const Constants::TypeCommandCab commandtype)
+{
+    switch (commandtype)
+    {
+    case Constants::TypeCommandCab::AddCode:
+        printQueue.enqueue(command);
+        emit logMessage(QString("[Client] Код добавлен: %1 / в очереди %2").arg(QString::fromUtf8(command)).arg(printQueue.size()));
+        fillPrinterBuffer();
+        break;
+    case Constants::TypeCommandCab::ClearBuffers:
+        clearBuffers();
+        break;
+    case Constants::TypeCommandCab::StartPrint:
+        startPrint();
+        break;
+    case Constants::TypeCommandCab::StopPrint:
+        stopPrint();
+        break;
+    case Constants::TypeCommandCab::RequestStatus:
+        requestStatus();
+        break;
+    }
+}
+
+// Обработка команд
+void ClientSocket::receiveLastWeight(const QString &data)
+{
+    emit logMessage(QString("[Client] Следующий вес: %1").arg(data));
+}
+
+
+void ClientSocket::fillPrinterBuffer()
+{
+
+}
+
+void ClientSocket::clearBuffers()
+{
+
+}
+
+void ClientSocket::startPrint()
+{
+
+}
+
+void ClientSocket::stopPrint()
+{
+
+}
+
+void ClientSocket::requestStatus()
+{
+
+}
+
+// Сеттеры
+void ClientSocket::setConnectionParams(const QString &ip, const QString &port)
+{
+    if (printer_ip == ip && printer_port == port) return;
+    printer_ip = ip;
+    printer_port = port;
+    emit logMessage(QString("[Client] Параметры подключения установлены ip: %1 port: %2").arg(ip, port));
+}
+
+// Слоты
+void ClientSocket::connectToServer()
+{
+    doWork();
+}
+
+void ClientSocket::disconnectFromServer()
+{
+    disconnectSocket();
 }

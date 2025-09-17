@@ -19,11 +19,13 @@ public slots:
     void on_btn_connect_client_clicked();
 signals:
     void startServerRequested();
-    void stopServerRequested();
     void startClientRequested();
+    void stopServerRequested();
+    void stopClientRequested();
 private:
     void setupUI();
     void updateStatusDisplays();
+    void updateButtonTexts();
 
     // Кнопки
     QPushButton *btnStartServer;
@@ -40,6 +42,8 @@ private:
     // Текущий статус
     bool serverConnected;
     bool clientConnected;
+    bool serverRunning;
+    bool clientRunning;
 };
 
 #endif // HOMEPAGE_H

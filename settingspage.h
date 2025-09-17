@@ -2,8 +2,6 @@
 #define SETTINGSPAGE_H
 
 #include <QWidget>
-#include <QLabel>
-#include <QVBoxLayout>
 #include <QLineEdit>
 #include <QSpinBox>
 #include <QPushButton>
@@ -11,21 +9,31 @@
 class SettingsPage : public QWidget
 {
     Q_OBJECT
+
 public:
     explicit SettingsPage(QWidget *parent = nullptr);
+
+    QString getServerIp() const;
+    int getServerPort() const;
+    QString getClientIp() const;
+    int getClientPort() const;
+
+    void loadSettings();
+
+signals:
+    void settingsSaved();
 
 private slots:
     void onSaveButtonClicked();
 
 private:
+    void setupUI();
+
     QLineEdit *serverIpEdit;
     QSpinBox *serverPortEdit;
     QLineEdit *clientIpEdit;
     QSpinBox *clientPortEdit;
     QPushButton *setSettings;
-
-    void setupUI();
-
 };
 
 #endif // SETTINGSPAGE_H
