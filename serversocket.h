@@ -4,56 +4,54 @@
 #include <QObject>
 #include <QTcpServer>
 #include <QTcpSocket>
-#include <QTimer>
-#include <QHostAddress>
-#include <QDataStream>
 
 class Server : public QObject
 {
     Q_OBJECT
-
 public:
-    explicit Server(QObject *parent = nullptr);
-    ~Server() override;
+    explicit Server(QObject* parent = nullptr);
+    ~Server();
 
-public slots:
-    void doWork();
-    void disconnectServer();
-    void setConnectionParams(const QString &ip, const QString &port);
-    void startServer();
-    void stopServer();
-    void ResponseMakroline(const QString &data_response);
-    void ResponsePLC(const QByteArray &data); // Добавим параметр
 
 signals:
-    void connectionChanged(bool connected);
     void logMessage(const QString &message);
-    void commandReceived(const QByteArray &command);
-    void plcDataReceived(const QString &data); // Новый сигнал для данных от ПЛК
+    void connectionChanged(bool connected);
+    void commandReceived(const QByteArray &command); // Команды от ПО Makroline
+    void plcDataReceived(const QByteArray &data);    // Данные от ПЛК
+
+public slots:
+    void ResponseMakroline(const QByteArray &response);
+    void ResponsePLC(const QByteArray &data);
+    void startServer();
+    void setConnectionParams(const QString &ip, const QString &port); // Для ПО Makroline
 
 private slots:
-    void onNewConnection();
+    void onNewMakrolineConnection();
+    void onNewPlcConnection();
     void onReadyRead();
     void onDisconnected();
-    void processNext();
-    void processNextOut();
     void onBytesWritten(qint64 bytes);
 
 private:
-    QTcpServer *server;
-    QTcpSocket *makrolineSocket; // Сокет для ПО Makroline
-    QTcpSocket *plcSocket;       // Сокет для ПЛК
+    void disconnectServer();
+    void processNext();
+    void processNextOut();
+    bool isMakrolineData(const QByteArray &data);
+    bool isPlcData(const QByteArray &data);
+
+    QTcpServer *makrolineServer; // Сервер для ПО Makroline
+    QTcpServer *plcServer;       // Сервер для ПЛК (порт 8090 статический)
+    QTcpSocket *makrolineSocket;
+    QTcpSocket *plcSocket;
+
     QString server_ip;
-    QString server_port;
-    QString plc_ip;
-    QString plc_port;
-    QList<QByteArray> queue;
-    QList<QByteArray> queueOut;
+    QString server_port; // Порт для ПО Makroline
+    int plc_port = 9090; // Статический порт для ПЛК
+
     bool isPrinting;
     bool isProcessingOut;
-
-    // Метод для идентификации устройств
-    QString identifyDevice(const QByteArray &data);
+    QList<QByteArray> queue;
+    QList<QByteArray> queueOut;
 };
 
 #endif // SERVERSOCKET_H

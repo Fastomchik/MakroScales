@@ -35,7 +35,6 @@ MainWindow::MainWindow(HomePage *homePage,
 
 MainWindow::~MainWindow()
 {
-    // Не удаляем страницы, так как ими управляет AppController
 }
 
 void MainWindow::setupPages()

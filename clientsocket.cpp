@@ -33,7 +33,7 @@ void ClientSocket::doWork()
 
     connect(socket, &QTcpSocket::connected, this, &ClientSocket::onConnected);
     connect(socket, &QTcpSocket::errorOccurred, this, &ClientSocket::onErrorOccurred);
-    connect(socket, &QTcpSocket::readyRead, this, &ClientSocket::handleAnswer);
+    //connect(socket, &QTcpSocket::readyRead, this, &ClientSocket::handleAnswer);
 
 
     emit logMessage(QString("[Client] Подключаемся к %1, %2")
@@ -70,11 +70,6 @@ void ClientSocket::onErrorOccurred()
     emit connectionChanged(false);
 }
 
-void ClientSocket::handleAnswer()
-{
-
-}
-
 // Слот получения команды от bridgelinxtocab
 void ClientSocket::sendCommandPrinter(const QByteArray &command, const Constants::TypeCommandCab commandtype)
 {
@@ -101,10 +96,6 @@ void ClientSocket::sendCommandPrinter(const QByteArray &command, const Constants
 }
 
 // Обработка команд
-void ClientSocket::receiveLastWeight(const QString &data)
-{
-    emit logMessage(QString("[Client] Следующий вес: %1").arg(data));
-}
 
 
 void ClientSocket::fillPrinterBuffer()

@@ -20,7 +20,6 @@ public slots:
     void connectToServer();
     void disconnectFromServer();
     void sendCommandPrinter(const QByteArray &command, const Constants::TypeCommandCab commandtype);
-    void receiveLastWeight(const QString &data);
 
 private slots:
     void onConnected();
@@ -38,7 +37,6 @@ private:
     QList<QString> listWeight;
 
     // Вспомогательные методы
-    void handleAnswer();
     void fillPrinterBuffer();
     void clearBuffers();
     void startPrint();

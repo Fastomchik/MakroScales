@@ -11,12 +11,15 @@
 #include <QRegularExpression>
 #include <QWaitCondition>
 #include <QMutex>
+#include <QQueue>
+#include <QHash>
 
 class BridgeLinxtoCab : public QObject
 {
     Q_OBJECT
 public:
     explicit BridgeLinxtoCab(QObject *parent = nullptr);
+
 signals:
     void commandToPrinter(const QByteArray &docodCommand, Constants::TypeCommandCab commandtype);
     void responseToMakroline(const QByteArray &response);
@@ -27,23 +30,16 @@ public slots:
     void manualPrint();
     void changeAutoAndManualModes(bool checked);
     void processLinxCommand(const QByteArray &command);
-    void updateAllCount();
-    // Oт AnswerDocod.h
+    //void updateAllCount();
     void handlePrinterState(Constants::CabState);
+    void setWeightFromPLC(const QByteArray &data);
 
 private:
     void autoPrinted();
-    //Обьекты
-    QTimer* m_updateTimer;
-    QWaitCondition m_queueCondition;
-    QMutex m_queueMutex;
-    // Вспомогательные методы
-    QByteArray generateCommandFromTemplate(); // Преобразование команды печати из софта на целевой принтер
-    bool isValidStateTransition(Constants::LinxState current, Constants::LinxState target) const;
     void processPrintQueue();
-    // ========================================================
-    // Обработчики команд Linx TTO (emulator)
-    // ========================================================
+    bool isValidStateTransition(Constants::LinxState current, Constants::LinxState target) const;
+
+    // Обработчики команд Linx TTO
     void handleRequestState();
     void handleRequestQueueSize();
     void handlePrint();
@@ -57,12 +53,21 @@ private:
     void handleUnknownCommand();
     void handleUpdateJobNamed(const QStringList &parts);
 
-    // Геттеры
+    // Трансформация Linx → CAB
+    QByteArray transformLinxToCab(const QString &linxCommand);
+
+    // Вспомогательные методы
     QByteArray getConvertStringToByte(const QString& string);
     QString getErrorState() const;
     QString getCurrentJob() const;
 
+private:
+    QTimer* m_updateTimer;
+    QWaitCondition m_queueCondition;
+    QMutex m_queueMutex;
+    QByteArray pendingCabCommand; // Отложенная команда, ждет вес
+    QString lastWeight;
+    QQueue<QString> makrolineQueue;
 };
 
-
-#endif // BRIDGELINXTODOCOD_H
+#endif // BRIDGELINXTOCAB_H

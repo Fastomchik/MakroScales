@@ -118,12 +118,14 @@ void AppController::initializeConnections()
     // Сигналы получения данных от makroline и plc
     connect(m_serverWorker, &Server::commandReceived, m_bridgeWorkerCab, &BridgeLinxtoCab::processLinxCommand,
             Qt::QueuedConnection);
-    connect(m_serverWorker, &Server::plcDataReceived, m_printerWorker, &ClientSocket::receiveLastWeight,
+    connect(m_serverWorker, &Server::plcDataReceived, m_bridgeWorkerCab, &BridgeLinxtoCab::setWeightFromPLC,
             Qt::QueuedConnection);
 
     // Сигналы старта и стопа сервера, клиента
-    connect(m_homePage, &HomePage::startServerRequested, this, &AppController::startServer);
-    connect(m_homePage, &HomePage::startClientRequested, this, &AppController::startClient);
+    connect(m_homePage, &HomePage::startServerRequested, this, &AppController::startServer,
+            Qt::QueuedConnection);
+    connect(m_homePage, &HomePage::startClientRequested, this, &AppController::startClient,
+            Qt::QueuedConnection);
 
     // Сигналы обновления интерфейса при измении статуса
     connect(m_serverWorker, &Server::connectionChanged, m_homePage, &HomePage::setServerStatus);
@@ -198,7 +200,7 @@ void AppController::stopServer()
     qDebug() << "Остановка сервера...";
 
     // Останавливаем сервер в его потоке
-    QMetaObject::invokeMethod(m_serverWorker, "stopServer", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(m_serverWorker, "disconnectServer", Qt::QueuedConnection);
 
     // Обновляем статус на домашней странице
     m_homePage->setServerStatus(false);
