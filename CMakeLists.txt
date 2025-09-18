@@ -8,12 +8,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-
-# Явно указываем необходимые компоненты Qt
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network SerialPort Concurrent LinguistTools)
-
-set(TS_FILES MakroScales_ru_RU.ts)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network SerialPort Concurrent)
 
 set(PROJECT_SOURCES
     main.cpp
@@ -21,17 +16,21 @@ set(PROJECT_SOURCES
     mainwindow.h
     mainwindow.ui
     homepage.h
+    homepage.cpp
     settingspage.h
+    settingspage.cpp
     counterspage.h
+    counterspage.cpp
     logspage.h
     logspage.cpp
-    settingspage.cpp
-    homepage.cpp
-    counterspage.cpp
     clientsocket.h
+    clientsocket.cpp
     serversocket.h
     serversocket.cpp
-    clientsocket.cpp
+    bridgelinxtocab.h
+    bridgelinxtocab.cpp
+    appcontroller.h
+    appcontroller.cpp
     constants.h
     constants.cpp
 )
@@ -39,13 +38,7 @@ set(PROJECT_SOURCES
 # Создаем исполняемый файл
 add_executable(MakroScales ${PROJECT_SOURCES}
     Icon.qrc
-    bridgelinxtocab.h bridgelinxtocab.cpp
-    appcontroller.h
-    appcontroller.cpp)
-
-# Добавляем переводы правильно
-qt6_add_translation(QM_FILES ${TS_FILES})
-target_sources(MakroScales PRIVATE ${QM_FILES})
+)
 
 # Линкуем необходимые библиотеки
 target_link_libraries(MakroScales PRIVATE
@@ -56,26 +49,18 @@ target_link_libraries(MakroScales PRIVATE
     Qt6::Concurrent
 )
 
-# Устанавливаем свойства для macOS
-if(APPLE)
-    set_target_properties(MakroScales PROPERTIES
-        MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-        MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-        MACOSX_BUNDLE TRUE
-    )
-endif()
+# Для Linux добавляем зависимости
+find_package(Threads REQUIRED)
+target_link_libraries(MakroScales PRIVATE Threads::Threads)
 
-# Устанавливаем свойства для Windows
-if(WIN32)
-    set_target_properties(MakroScales PROPERTIES
-        WIN32_EXECUTABLE TRUE
-    )
-endif()
-
-# Установка приложения
+# Установка приложения для Linux
 include(GNUInstallDirs)
 install(TARGETS MakroScales
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+# Копирование ресурсов и переводов
+include(GNUInstallDirs)
+install(FILES ${QM_FILES}
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/translations
 )
