@@ -88,7 +88,7 @@ void ClientSocket::sendCommandPrinter(const QByteArray &command, const Constants
     {
     case Constants::TypeCommandCab::AddCode:
         printQueue.enqueue(command);
-        emit logMessage(QString("[Client] Код добавлен: %1 / в очереди %2").arg(QString::fromUtf8(command)).arg(printQueue.size()));
+        emit logMessage(QString("[Client] Код добавлен:\n %1 / в очереди %2").arg(QString::fromUtf8(command)).arg(printQueue.size()));
         fillPrinterBuffer();
         break;
     case Constants::TypeCommandCab::ClearBuffers:
@@ -124,7 +124,7 @@ void ClientSocket::fillPrinterBuffer()
         if (written == -1) {
             emit logMessage("[Client] Ошибка отправки команды в принтер");
         } else {
-            emit logMessage("[Client] Команда отправлена в принтер: " + QString::fromUtf8(command));
+            emit logMessage("[Client] Команда отправлена в принтер:\n" + QString::fromUtf8(command));
         }
 
         socket->flush(); // сразу отправляем в сокет

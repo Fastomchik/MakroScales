@@ -117,18 +117,20 @@ QByteArray BridgeLinxtoCab::transformLinxToCab(const QString &linxCommand)
     QHash<QString, QString> values;
     QString rawCode;
 
+    // Проходим по всем частям команды
     for (const QString &part : parts) {
         if (part.startsWith("code=")) {
             rawCode = part.mid(5).trimmed();
 
-            // Преобразование управляющих последовательностей
-            rawCode.replace("~d029", "[U:GS]");
-            if (rawCode.startsWith('~')) {
-                rawCode.replace(0, 1, "[U:FNC1]");
-            }
-
             // Убираем кавычки
             rawCode.remove('"');
+
+            // Сначала заменяем ~d029 на [U:GS]
+            rawCode.replace("~d029", "[U:GS]");
+
+            // Заменяем все оставшиеся ~ на [U:FNC1]
+            // включая ведущий ~
+            rawCode.replace("~1", "[U:FNC1]");
 
         } else if (part.contains('=')) {
             QString key = part.section('=', 0, 0).trimmed();
@@ -138,16 +140,26 @@ QByteArray BridgeLinxtoCab::transformLinxToCab(const QString &linxCommand)
     }
 
     QStringList cabLines;
-    if (!rawCode.isEmpty()) cabLines << QString("R code;%1").arg(rawCode);
-    if (values.contains("name")) cabLines << QString("R name;%1").arg(values["name"]);
-    if (values.contains("batch")) cabLines << QString("R batch;%1").arg(values["batch"]);
-    if (values.contains("production_datetime")) cabLines << QString("R production_datetime;%1").arg(values["production_datetime"]);
-    if (values.contains("expiration_datetime")) cabLines << QString("R expiration_datetime;%1").arg(values["expiration_datetime"]);
-    cabLines << "R weight;0"; // Заглушка — потом заменится на реальный вес
-    cabLines << "A 1";
+    if (!rawCode.isEmpty())
+        cabLines << QString("R code;%1").arg(rawCode);
+    if (values.contains("name"))
+        cabLines << QString("R name;%1").arg(values["name"]);
+    if (values.contains("batch"))
+        cabLines << QString("R batch;%1").arg(values["batch"]);
+    if (values.contains("production_datetime"))
+        cabLines << QString("R production_datetime;%1").arg(values["production_datetime"]);
+    if (values.contains("expiration_datetime"))
+        cabLines << QString("R expiration_datetime;%1").arg(values["expiration_datetime"]);
 
-    QString finalCommand = cabLines.join('\n');
-    emit logMessage("[System] Сформирована команда CAB:\n" + finalCommand);
+    // Заглушка — вес будет подставлен позже
+    cabLines << "R weight;0";
+    cabLines << "A1";
+
+    QString finalCommand;
+    for (const QString &line : cabLines) {
+        finalCommand += line + "\r\n";
+    }
+    emit logMessage("[System] Сформирована CAB-команда:\n" + finalCommand);
 
     return finalCommand.toUtf8();
 }
@@ -163,7 +175,7 @@ void BridgeLinxtoCab::setWeightFromPLC(const QByteArray &data)
     emit logMessage("[System] Получен вес от PLC: " + weightStr);
 
     QString cmdStr = QString::fromUtf8(pendingCabQueue.dequeue());
-    cmdStr.replace("R weight;0", "R weight;" + weightStr);
+    cmdStr.replace("R weight;0\r\n", "R weight;" + weightStr + "\r\n");
 
     QByteArray commandToSend = cmdStr.toUtf8();
     qDebug() << "CommandtoSend" <<commandToSend;
@@ -181,25 +193,35 @@ void BridgeLinxtoCab::setWeightFromPLC(const QByteArray &data)
 
 void BridgeLinxtoCab::handleAddToBuffer(const QStringList &parts)
 {
-    if (parts.size() < 2) return;
+    if (parts.isEmpty()) return;
 
-    QString codeCommand = parts[1];
+    // Ищем любой part, который начинается с code=
     QString rawCommand;
+    for (const QString &part : parts) {
+        if (part.startsWith("code=")) {
+            rawCommand = part.mid(5).trimmed();
+            break;
+        }
+    }
 
-    if (codeCommand.startsWith("code=")) rawCommand = codeCommand.mid(5);
-    else if (codeCommand.startsWith("SHD|code=")) rawCommand = codeCommand.mid(9);
-    else return;
+    if (rawCommand.isEmpty()) {
+        emit logMessage("[System] Не удалось определить код из команды: " + parts.join('|'));
+        emit responseToMakroline("ERR|INVALID_CODE");
+        return;
+    }
 
+    // Добавляем исходный код в очередь Makroline
     makrolineQueue.enqueue(rawCommand);
     emit logMessage("[System] Добавлено кодов: 1, всего в очереди: " + QString::number(makrolineQueue.size()));
 
-    // Генерируем команду CAB и кладем в очередь отложенных команд
-    QByteArray cabCommand = transformLinxToCab(rawCommand);
+    // Генерируем CAB-команду с учётом всех полей
+    QByteArray cabCommand = transformLinxToCab(parts.join('|'));
     pendingCabQueue.enqueue(cabCommand);
 
     emit logMessage("[System] Команда CAB добавлена в очередь и ждёт вес");
     emit responseToMakroline("ACK");
 }
+
 
 void BridgeLinxtoCab::handlePrinterState(Constants::CabState)
 {
