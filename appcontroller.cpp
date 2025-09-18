@@ -144,6 +144,7 @@ void AppController::initializeConnections()
     // Сигналы обновления интерфейса при измении статуса
     connect(m_serverWorker, &Server::connectionChanged, m_homePage, &HomePage::setServerStatus, Qt::QueuedConnection);
     connect(m_printerWorker, &ClientSocket::connectionChanged, m_homePage, &HomePage::setClientStatus, Qt::QueuedConnection);
+    connect(m_bridgeWorkerCab, &BridgeLinxtoCab::updateDisplayWeightCounter, m_countersPage, &CountersPage::setLastWeight, Qt::QueuedConnection);
 
     // Добавляем подключение сигнала сохранения настроек
     connect(m_settingsPage, &SettingsPage::settingsSaved, this, &AppController::onSettingsSaved);

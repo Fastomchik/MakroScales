@@ -25,6 +25,7 @@ signals:
     void commandToPrinter(const QByteArray &docodCommand, Constants::TypeCommandCab commandtype);
     void responseToMakroline(const QByteArray &response);
     void logMessage(const QString &message);
+    void updateDisplayWeightCounter(int lastWeight);
     //void updateSpinBox(Constants::SpinBoxType type, int value);
 
 public slots:
@@ -68,7 +69,6 @@ private:
     QMutex m_queueMutex;
     QByteArray pendingCabCommand;
     QQueue<QByteArray> pendingCabQueue;    // Отложенная команда, ждет вес
-    QString lastWeight;
     QQueue<QString> makrolineQueue;
 };
 

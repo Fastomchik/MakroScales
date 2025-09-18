@@ -231,7 +231,7 @@ SDH||expiration_datetime=||production_datetime=||batch=||code=||name=
     static inline uint LENGTH_CODE;
     static inline int maxReconnectAttempts = 100;
     static inline int reconnectInterval = 5000;
-    static inline QString lastWeight = "";
+    static inline int lastWeight = {0};
     static inline QString labelTemplate; // Переменная содержащая этикетку
     static inline QMap<QString, QString> variables; // Разбивка полей по строкам parts
     static inline PrinterType currentPrinter = PrinterType::Unknown;
