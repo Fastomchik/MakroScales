@@ -5,6 +5,8 @@
 #include <QString>
 #include <QTcpSocket>
 #include <QList>
+#include <QQueue>
+#include <QMutex>
 
 
 class ClientSocket : public QObject
@@ -30,6 +32,7 @@ signals:
     void connectionChanged(bool checked);
     void logMessage(const QString& message);
     void successfulPrintedInMakroline(const QByteArray &response);
+    void updateDisplayPrintedCounter(int count);
 
 private:
     bool isConnected;
@@ -37,7 +40,8 @@ private:
     QString printer_ip;
     QString printer_port;
     QList<QString> listWeight;
-
+    QQueue<QByteArray> printQueue;
+    QMutex printQueueMutex;
     // Вспомогательные методы
     void fillPrinterBuffer();
     void clearBuffers();

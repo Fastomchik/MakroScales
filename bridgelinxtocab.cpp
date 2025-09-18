@@ -166,13 +166,14 @@ QByteArray BridgeLinxtoCab::transformLinxToCab(const QString &linxCommand)
 
 void BridgeLinxtoCab::setWeightFromPLC(const QByteArray &data)
 {
-    if (data.isEmpty() || pendingCabQueue.isEmpty()) return;
+    //if (data.isEmpty() || pendingCabQueue.isEmpty()) return;
 
     QString weightStr = QString::fromUtf8(data).trimmed();
-    bool ok;
-    int weightInt = weightStr.toInt(&ok);
 
     emit logMessage("[System] Получен вес от PLC: " + weightStr);
+
+    bool ok;
+    float weightInt = weightStr.toFloat(&ok);
 
     QString cmdStr = QString::fromUtf8(pendingCabQueue.dequeue());
     cmdStr.replace("R weight;0\r\n", "R weight;" + weightStr + "\r\n");
@@ -181,12 +182,12 @@ void BridgeLinxtoCab::setWeightFromPLC(const QByteArray &data)
     qDebug() << "CommandtoSend" <<commandToSend;
     // Отправляем команду в принтер
     emit commandToPrinter(commandToSend, Constants::TypeCommandCab::AddCode);
-    emit updateDisplayWeightCounter(weightInt);
     emit logMessage("[System] Отправлена команда на печать с весом: " + weightStr);
-
-    // Очищаем отложенную команду
-    pendingCabCommand.clear();
+    emit updateDisplayTotalCountCounter(1);
+    emit updateDisplayBufferCodesCount(static_cast<int>(pendingCabQueue.size()));
+    emit updateDisplayWeightCounter(weightInt);
 }
+
 // ========================================================
 // Обработчики команд Linx
 // ========================================================
@@ -217,7 +218,7 @@ void BridgeLinxtoCab::handleAddToBuffer(const QStringList &parts)
     // Генерируем CAB-команду с учётом всех полей
     QByteArray cabCommand = transformLinxToCab(parts.join('|'));
     pendingCabQueue.enqueue(cabCommand);
-
+    emit updateDisplayBufferCodesCount(static_cast<int>(pendingCabQueue.size()));
     emit logMessage("[System] Команда CAB добавлена в очередь и ждёт вес");
     emit responseToMakroline("ACK");
 }
@@ -276,6 +277,7 @@ void BridgeLinxtoCab::handleRequestState()
 void BridgeLinxtoCab::handleRequestQueueSize()
 {
     emit responseToMakroline(QString("SRC|%1").arg(makrolineQueue.size()).toUtf8());
+    emit updateDisplayBufferCodesCount(static_cast<int>(makrolineQueue.size()));
 }
 
 void BridgeLinxtoCab::handleRequestAsyncState() { emit responseToMakroline("ACK"); }
@@ -284,6 +286,9 @@ void BridgeLinxtoCab::handleClearFaults()
 {
     QByteArray cmd = getConvertStringToByte(Constants::TypeCommandCabText.value(Constants::TypeCommandCab::ClearBuffers));
     emit commandToPrinter(cmd, Constants::TypeCommandCab::ClearBuffers);
+    pendingCabQueue.clear();
+    makrolineQueue.clear();
+    emit updateDisplayBufferCodesCount(static_cast<int>(pendingCabQueue.size()));
     emit responseToMakroline("ACK");
 }
 

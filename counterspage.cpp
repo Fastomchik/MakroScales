@@ -32,12 +32,26 @@ CounterWidget::~CounterWidget()
 
 }
 
-void CounterWidget::setValue(int value, const QString &unit) {
-    if (unit.isEmpty()) {
-        valueLabel->setText(QString::number(value));
-    } else {
-        valueLabel->setText(QString("%1 %2").arg(value).arg(unit));
+template<typename T>
+void CounterWidget::setValue(T value, const QString &unit) {
+    QString displayText;
+
+    if constexpr (std::is_integral_v<T>) {
+        // Для целых чисел
+        displayText = QString::number(value);
+    } else if constexpr (std::is_floating_point_v<T>) {
+        // Для чисел с плавающей точкой
+        if (value == static_cast<int>(value)) {
+            displayText = QString::number(static_cast<int>(value));
+        } else {
+            displayText = QString::number(value, 'f', 1);
+        }
     }
+
+    if (!unit.isEmpty()) {
+        displayText += " " + unit;
+    }
+    valueLabel->setText(displayText);
 }
 
 CountersPage::CountersPage(QWidget *parent) : QWidget(parent),
@@ -91,7 +105,7 @@ void CountersPage::setBufferCodesCount(int count)
     updateDisplay();
 }
 
-void CountersPage::setLastWeight(int weight)
+void CountersPage::setLastWeight(float weight)
 {
     lastWeight = weight;
     updateDisplay();
@@ -99,13 +113,13 @@ void CountersPage::setLastWeight(int weight)
 
 void CountersPage::setTotalCountСounter(int count)
 {
-    totalCount = count;
+    totalCount += count;
     updateDisplay();
 }
 
 void CountersPage::setCountPrintedCounter(int count)
 {
-    countPrinted = count;
+    countPrinted += count;
     updateDisplay();
 }
 

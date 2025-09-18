@@ -10,8 +10,8 @@ class Server;
 #include <QMap>
 
 
-extern QQueue<QByteArray> printQueue;
-extern QQueue<QString> makrolineQueue;
+//extern QQueue<QByteArray> printQueue;
+//extern QQueue<QString> makrolineQueue;
 
 class Constants : public QObject
 {

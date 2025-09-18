@@ -145,6 +145,9 @@ void AppController::initializeConnections()
     connect(m_serverWorker, &Server::connectionChanged, m_homePage, &HomePage::setServerStatus, Qt::QueuedConnection);
     connect(m_printerWorker, &ClientSocket::connectionChanged, m_homePage, &HomePage::setClientStatus, Qt::QueuedConnection);
     connect(m_bridgeWorkerCab, &BridgeLinxtoCab::updateDisplayWeightCounter, m_countersPage, &CountersPage::setLastWeight, Qt::QueuedConnection);
+    connect(m_bridgeWorkerCab, &BridgeLinxtoCab::updateDisplayBufferCodesCount, m_countersPage, &CountersPage::setBufferCodesCount, Qt::QueuedConnection);
+    connect(m_printerWorker, &ClientSocket::updateDisplayPrintedCounter, m_countersPage, &CountersPage::setCountPrintedCounter, Qt::QueuedConnection);
+    connect(m_bridgeWorkerCab, &BridgeLinxtoCab::updateDisplayTotalCountCounter, m_countersPage, &CountersPage::setTotalCountСounter, Qt::QueuedConnection);
 
     // Добавляем подключение сигнала сохранения настроек
     connect(m_settingsPage, &SettingsPage::settingsSaved, this, &AppController::onSettingsSaved);

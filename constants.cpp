@@ -4,9 +4,9 @@
 #include <QQueue>
 
 // Глобальные переменные (если они нужны в других местах)
-QQueue<QByteArray> printQueue;
-QQueue<QString> makrolineQueue;
-QMutex printQueueMutex;
+//QQueue<QByteArray> printQueue;
+//QQueue<QString> makrolineQueue;
+//QMutex printQueueMutex;
 
 Constants::Constants(QObject *parent)
     : QObject(parent)
