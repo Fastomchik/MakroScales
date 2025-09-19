@@ -147,12 +147,11 @@ void HomePage::setClientStatus(bool connected)
     updateStatusDisplays();
 }
 
-bool HomePage::getServerStatus()
+void HomePage::getServerStatus()
 {
     emit serverStatusChanged(serverConnected);
 }
-
-bool HomePage::getClientStatus()
+void HomePage::getClientStatus()
 {
     emit clientStatusChanged(clientConnected);
 }
