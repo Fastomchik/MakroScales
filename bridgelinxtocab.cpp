@@ -110,7 +110,6 @@ void BridgeLinxtoCab::processLinxCommand(const QByteArray &raw)
         }
     }
 }
-
 // ========================================================
 // Трансформация Linx → CAB
 // ========================================================
@@ -132,8 +131,6 @@ QByteArray BridgeLinxtoCab::transformLinxToCab(const QString &linxCommand)
     for (const QString &part : parts) {
         if (part.startsWith("code=")) {
             currentRawCode = part.mid(5).trimmed();
-            // Убираем кавычки
-            currentRawCode.remove('"');
             // Заменяем ~d029 на [U:GS]
             currentRawCode.replace("~d029", "[U:GS]");
             // Заменяем все оставшиеся ~ на [U:FNC1]
