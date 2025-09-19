@@ -149,12 +149,12 @@ void HomePage::setClientStatus(bool connected)
 
 bool HomePage::getServerStatus()
 {
-    serverStatusChanged(serverConnected);
+    emit serverStatusChanged(serverConnected);
 }
 
 bool HomePage::getClientStatus()
 {
-    serverStatusChanged(clientConnected);
+    emit clientStatusChanged(clientConnected);
 }
 
 void HomePage::resetStatus()

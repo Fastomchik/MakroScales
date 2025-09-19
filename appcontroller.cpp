@@ -146,6 +146,8 @@ void AppController::initializeConnections()
     connect(m_printerWorker, &ClientSocket::connectionChanged, m_homePage, &HomePage::setClientStatus, Qt::QueuedConnection);
     connect(m_bridgeWorkerCab, &BridgeLinxtoCab::CheckServerStatus, m_homePage, &HomePage::getServerStatus, Qt::QueuedConnection);
     connect(m_bridgeWorkerCab , &BridgeLinxtoCab::CheckClientStatus, m_homePage, &HomePage::getClientStatus, Qt::QueuedConnection);
+    connect(m_homePage, &HomePage::clientStatusChanged, m_bridgeWorkerCab, &BridgeLinxtoCab::updateClientStatus, Qt::QueuedConnection);
+    connect(m_homePage, &HomePage::clientStatusChanged, m_bridgeWorkerCab, &BridgeLinxtoCab::updateServerStatus, Qt::QueuedConnection);
     connect(m_bridgeWorkerCab, &BridgeLinxtoCab::updateDisplayWeightCounter, m_countersPage, &CountersPage::setLastWeight, Qt::QueuedConnection);
     connect(m_bridgeWorkerCab, &BridgeLinxtoCab::updateDisplayBufferCodesCount, m_countersPage, &CountersPage::setBufferCodesCount, Qt::QueuedConnection);
     connect(m_printerWorker, &ClientSocket::updateDisplayPrintedCounter, m_countersPage, &CountersPage::setCountPrintedCounter, Qt::QueuedConnection);

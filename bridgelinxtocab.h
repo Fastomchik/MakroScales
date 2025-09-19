@@ -28,8 +28,8 @@ signals:
     void updateDisplayWeightCounter(float lastWeight);
     void updateDisplayBufferCodesCount(int codesInBuffer);
     void updateDisplayTotalCountCounter(int count);
-    void CheckServerStatus(bool status);
-    void CheckClientStatus(bool status);
+    void CheckServerStatus();
+    void CheckClientStatus();
     //void updateSpinBox(Constants::SpinBoxType type, int value);
 
 public slots:

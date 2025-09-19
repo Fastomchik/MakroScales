@@ -117,6 +117,12 @@ void BridgeLinxtoCab::processLinxCommand(const QByteArray &raw)
 QByteArray BridgeLinxtoCab::transformLinxToCab(const QString &linxCommand)
 {
     if (linxCommand.isEmpty()) return QByteArray();
+    emit CheckServerStatus();
+    emit CheckClientStatus();
+    if(!m_serverConnected && !m_clientConnected){
+        emit logMessage("[System] Клиент или сервер не подключен");
+        return QByteArray();
+    }
 
     QStringList parts = linxCommand.split('|', Qt::SkipEmptyParts);
     QHash<QString, QString> currentValues;
