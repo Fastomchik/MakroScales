@@ -60,7 +60,6 @@ install(TARGETS MakroScales
 )
 
 # Копирование ресурсов и переводов
-include(GNUInstallDirs)
 install(FILES ${QM_FILES}
     DESTINATION ${CMAKE_INSTALL_DATADIR}/translations
 )

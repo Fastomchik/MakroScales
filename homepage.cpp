@@ -147,6 +147,16 @@ void HomePage::setClientStatus(bool connected)
     updateStatusDisplays();
 }
 
+bool HomePage::getServerStatus()
+{
+    serverStatusChanged(serverConnected);
+}
+
+bool HomePage::getClientStatus()
+{
+    serverStatusChanged(clientConnected);
+}
+
 void HomePage::resetStatus()
 {
     serverConnected = false;

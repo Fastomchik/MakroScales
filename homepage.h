@@ -14,6 +14,8 @@ public:
     void resetStatus();
     void setServerStatus(bool connected);
     void setClientStatus(bool connected);
+    bool getServerStatus();
+    bool getClientStatus();
 public slots:
     void on_btn_start_server_clicked();
     void on_btn_connect_client_clicked();
@@ -24,6 +26,8 @@ signals:
     void startClientRequested();
     void stopServerRequested();
     void stopClientRequested();
+    void clientStatusChanged(bool clientStatus);
+    void serverStatusChanged(bool serverStatus);
 private:
     void setupUI();
     void updateStatusDisplays();

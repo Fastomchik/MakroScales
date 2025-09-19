@@ -4,6 +4,11 @@ BridgeLinxtoCab::BridgeLinxtoCab(QObject *parent) : QObject(parent)
 {
     QSettings settings("MakroSoft", "MakroRetranslator");
     Constants::labelTemplate = settings.value("label/template").toString();
+    lastValues["name"] = "";
+    lastValues["batch"] = "";
+    lastValues["production_datetime"] = "";
+    lastValues["expiration_datetime"] = "";
+    lastRawCode = "";
 }
 
 BridgeLinxtoCab::~BridgeLinxtoCab()
@@ -114,42 +119,55 @@ QByteArray BridgeLinxtoCab::transformLinxToCab(const QString &linxCommand)
     if (linxCommand.isEmpty()) return QByteArray();
 
     QStringList parts = linxCommand.split('|', Qt::SkipEmptyParts);
-    QHash<QString, QString> values;
-    QString rawCode;
+    QHash<QString, QString> currentValues;
+    QString currentRawCode;
 
     // Проходим по всем частям команды
     for (const QString &part : parts) {
         if (part.startsWith("code=")) {
-            rawCode = part.mid(5).trimmed();
-
+            currentRawCode = part.mid(5).trimmed();
             // Убираем кавычки
-            rawCode.remove('"');
-
-            // Сначала заменяем ~d029 на [U:GS]
-            rawCode.replace("~d029", "[U:GS]");
-
+            currentRawCode.remove('"');
+            // Заменяем ~d029 на [U:GS]
+            currentRawCode.replace("~d029", "[U:GS]");
             // Заменяем все оставшиеся ~ на [U:FNC1]
-            // включая ведущий ~
-            rawCode.replace("~1", "[U:FNC1]");
+            currentRawCode.replace("~1", "[U:FNC1]");
 
+            // Сохраняем текущий код
+            if (!currentRawCode.isEmpty()) {
+                lastRawCode = currentRawCode;
+            }
         } else if (part.contains('=')) {
             QString key = part.section('=', 0, 0).trimmed();
             QString value = part.section('=', 1).trimmed();
-            values[key] = value;
+            currentValues[key] = value;
+
+            // Сохраняем текущее значение, если оно не пустое
+            if (!value.isEmpty()) {
+                lastValues[key] = value;
+            }
         }
     }
 
     QStringList cabLines;
-    if (!rawCode.isEmpty())
-        cabLines << QString("R code;%1").arg(rawCode);
-    if (values.contains("name"))
-        cabLines << QString("R name;%1").arg(values["name"]);
-    if (values.contains("batch"))
-        cabLines << QString("R batch;%1").arg(values["batch"]);
-    if (values.contains("production_datetime"))
-        cabLines << QString("R production_datetime;%1").arg(values["production_datetime"]);
-    if (values.contains("expiration_datetime"))
-        cabLines << QString("R expiration_datetime;%1").arg(values["expiration_datetime"]);
+
+    // Используем текущий код, если он есть, иначе последний сохраненный
+    QString codeToUse = !currentRawCode.isEmpty() ? currentRawCode : lastRawCode;
+    if (!codeToUse.isEmpty())
+        cabLines << QString("R code;%1").arg(codeToUse);
+
+    // Для каждого поля используем текущее значение, если оно есть, иначе последнее сохраненное
+    if (currentValues.contains("name") || !lastValues["name"].isEmpty())
+        cabLines << QString("R name;%1").arg(!currentValues["name"].isEmpty() ? currentValues["name"] : lastValues["name"]);
+
+    if (currentValues.contains("batch") || !lastValues["batch"].isEmpty())
+        cabLines << QString("R batch;%1").arg(!currentValues["batch"].isEmpty() ? currentValues["batch"] : lastValues["batch"]);
+
+    if (currentValues.contains("production_datetime") || !lastValues["production_datetime"].isEmpty())
+        cabLines << QString("R production_datetime;%1").arg(!currentValues["production_datetime"].isEmpty() ? currentValues["production_datetime"] : lastValues["production_datetime"]);
+
+    if (currentValues.contains("expiration_datetime") || !lastValues["expiration_datetime"].isEmpty())
+        cabLines << QString("R expiration_datetime;%1").arg(!currentValues["expiration_datetime"].isEmpty() ? currentValues["expiration_datetime"] : lastValues["expiration_datetime"]);
 
     // Заглушка — вес будет подставлен позже
     cabLines << "R weight;0";
@@ -159,34 +177,47 @@ QByteArray BridgeLinxtoCab::transformLinxToCab(const QString &linxCommand)
     for (const QString &line : cabLines) {
         finalCommand += line + "\r\n";
     }
+
     emit logMessage("[System] Сформирована CAB-команда:\n" + finalCommand);
+    emit logMessage("[System] Использованные значения: "
+                    "Код: " + codeToUse + ", "
+                                  "Наименование: " + (!currentValues["name"].isEmpty() ? currentValues["name"] : lastValues["name"]) + ", "
+                                                                                                        "Партия: " + (!currentValues["batch"].isEmpty() ? currentValues["batch"] : lastValues["batch"]) + ", "
+                                                                                                           "Дата производства: " + (!currentValues["production_datetime"].isEmpty() ? currentValues["production_datetime"] : lastValues["production_datetime"]) + ", "
+                                                                                                                                                     "Срок годности: " + (!currentValues["expiration_datetime"].isEmpty() ? currentValues["expiration_datetime"] : lastValues["expiration_datetime"]));
 
     return finalCommand.toUtf8();
 }
 
 void BridgeLinxtoCab::setWeightFromPLC(const QByteArray &data)
 {
-    //if (data.isEmpty() || pendingCabQueue.isEmpty()) return;
+    if (!m_clientConnected) {
+        emit logMessage("[System] Нет соединения с клиентом");
+        return;
+        }
 
-    QString weightStr = QString::fromUtf8(data).trimmed();
+        if (data.isEmpty() || pendingCabQueue.isEmpty()) return;
 
-    emit logMessage("[System] Получен вес от PLC: " + weightStr);
+        QString weightStr = QString::fromUtf8(data).trimmed();
 
-    bool ok;
-    float weightInt = weightStr.toFloat(&ok);
+        emit logMessage("[System] Получен вес от PLC: " + weightStr);
 
-    QString cmdStr = QString::fromUtf8(pendingCabQueue.dequeue());
-    cmdStr.replace("R weight;0\r\n", "R weight;" + weightStr + "\r\n");
+        bool ok;
+        float weightInt = weightStr.toFloat(&ok);
 
-    QByteArray commandToSend = cmdStr.toUtf8();
-    qDebug() << "CommandtoSend" <<commandToSend;
-    // Отправляем команду в принтер
-    emit commandToPrinter(commandToSend, Constants::TypeCommandCab::AddCode);
-    emit logMessage("[System] Отправлена команда на печать с весом: " + weightStr);
-    emit updateDisplayTotalCountCounter(1);
-    emit updateDisplayBufferCodesCount(static_cast<int>(pendingCabQueue.size()));
-    emit updateDisplayWeightCounter(weightInt);
+        QString cmdStr = QString::fromUtf8(pendingCabQueue.dequeue());
+        cmdStr.replace("R weight;0\r\n", "R weight;" + weightStr + "\r\n");
+
+        QByteArray commandToSend = cmdStr.toUtf8();
+        qDebug() << "CommandtoSend" <<commandToSend;
+        // Отправляем команду в принтер
+        emit commandToPrinter(commandToSend, Constants::TypeCommandCab::AddCode);
+        emit logMessage("[System] Отправлена команда на печать с весом: " + weightStr);
+        emit updateDisplayTotalCountCounter(1);
+        emit updateDisplayBufferCodesCount(static_cast<int>(pendingCabQueue.size()));
+        emit updateDisplayWeightCounter(weightInt);
 }
+
 
 // ========================================================
 // Обработчики команд Linx
@@ -369,4 +400,15 @@ bool BridgeLinxtoCab::isValidStateTransition(Constants::LinxState current, Const
     case Constants::LinxState::ShuttingDown:return target == Constants::LinxState::Shutdown || target == Constants::LinxState::StartingUp;
     default: return false;
     }
+}
+
+
+void BridgeLinxtoCab::updateClientStatus(bool connected)
+{
+    m_clientConnected = connected;
+}
+
+void BridgeLinxtoCab::updateServerStatus(bool connected)
+{
+    m_serverConnected = connected;
 }

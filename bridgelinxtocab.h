@@ -28,6 +28,8 @@ signals:
     void updateDisplayWeightCounter(float lastWeight);
     void updateDisplayBufferCodesCount(int codesInBuffer);
     void updateDisplayTotalCountCounter(int count);
+    void CheckServerStatus(bool status);
+    void CheckClientStatus(bool status);
     //void updateSpinBox(Constants::SpinBoxType type, int value);
 
 public slots:
@@ -37,6 +39,9 @@ public slots:
     //void updateAllCount();
     void handlePrinterState(Constants::CabState);
     void setWeightFromPLC(const QByteArray &data);
+
+    void updateClientStatus(bool connected);
+    void updateServerStatus(bool connected);
 
 private:
     void autoPrinted();
@@ -65,12 +70,17 @@ private:
     QString getErrorState() const;
     QString getCurrentJob() const;
 
-private:
     QTimer* m_updateTimer;
     QWaitCondition m_queueCondition;
     QMutex m_queueMutex;
     QQueue<QByteArray> pendingCabQueue;    // Отложенная команда, ждет вес
     QQueue<QString> makrolineQueue;
+
+    QHash<QString, QString> lastValues;
+    QString lastRawCode;
+
+    bool m_clientConnected;
+    bool m_serverConnected;
 };
 
 #endif // BRIDGELINXTOCAB_H
